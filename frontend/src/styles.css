@@ -21,7 +21,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #f5f7f4;
-  background-image: linear-gradient(rgba(245, 247, 244, 0.88), rgba(245, 247, 244, 0.94)), url("/Background%20Image.png");
+  background-image: url("/Background%20Image.png");
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
@@ -42,7 +42,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 12px 0 10px;
   border-radius: 14px;
   border: 1px solid rgba(49, 123, 80, 0.18);
-  background-image: linear-gradient(rgba(247, 248, 246, 0.84), rgba(247, 248, 246, 0.92)), url("/Background%20Image.png");
+  background-image: url("/Background%20Image.png");
   background-size: cover;
   background-position: center 25%;
   background-repeat: no-repeat;
@@ -178,7 +178,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auth-card {
   width: min(100%, 430px);
   margin: 0 auto 30px;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.96)), url("/User%20Forms%20Backround.png");
+  background-image: url("/User%20Forms%20Backround.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -238,7 +238,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .participant-card {
   min-width: 0;
   padding: 20px;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.97)), url("/User%20Forms%20Backround.png");
+  background-image: url("/User%20Forms%20Backround.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -304,7 +304,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .meeting-join-card {
   margin: 34px 0 18px;
   padding: clamp(20px, 5vw, 34px);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.96)), url("/User%20Forms%20Backround.png");
+  background-image: url("/User%20Forms%20Backround.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
