@@ -1,0 +1,2 @@
+python-multipart==0.0.32
+cryptography==46.0.7

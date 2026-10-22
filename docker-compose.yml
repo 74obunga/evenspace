@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-evenspace}
+      POSTGRES_USER: ${POSTGRES_USER:-evenspace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evenspace-dev-only}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-evenspace} -d ${POSTGRES_DB:-evenspace}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-evenspace}:${POSTGRES_PASSWORD:-evenspace-dev-only}@db:5432/${POSTGRES_DB:-evenspace}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-none}
+      DARAJA_ENVIRONMENT: ${DARAJA_ENVIRONMENT:-sandbox}
+      DARAJA_CONSUMER_KEY: ${DARAJA_CONSUMER_KEY:-}
+      DARAJA_CONSUMER_SECRET: ${DARAJA_CONSUMER_SECRET:-}
+      DARAJA_SHORTCODE: ${DARAJA_SHORTCODE:-}
+      DARAJA_PASSKEY: ${DARAJA_PASSKEY:-}
+      DARAJA_CALLBACK_BASE_URL: ${DARAJA_CALLBACK_BASE_URL:-}
+      DARAJA_TRANSACTION_TYPE: ${DARAJA_TRANSACTION_TYPE:-CustomerPayBillOnline}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/srv/evenspace
+    depends_on:
+      db:
+        condition: service_healthy
+  notification-worker:
+    build: ./backend
+    command: ["python", "-m", "app.modules.notifications.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-evenspace}:${POSTGRES_PASSWORD:-evenspace-dev-only}@db:5432/${POSTGRES_DB:-evenspace}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-notifications@evenspace.local}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./backend:/srv/evenspace
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+volumes:
+  postgres_data:
+
