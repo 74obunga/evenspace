@@ -23,7 +23,23 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #91bd9d; outline-offset: 2px; }
 
 .shell { width: min(100% - 40px, 690px); margin: 0 auto; padding-bottom: 34px; }
-.topbar { height: 76px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.topbar, .meeting-header, .meeting-join-header {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 20px;
+  margin: 12px 0 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(49, 123, 80, 0.18);
+  background-image: linear-gradient(rgba(247, 248, 246, 0.84), rgba(247, 248, 246, 0.92)), url("/Background%20Image.png");
+  background-size: cover;
+  background-position: center 25%;
+  background-repeat: no-repeat;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
+}
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); font-size: 17px; font-weight: 750; letter-spacing: -.6px; text-decoration: none; }
 .brand-mark { position: relative; width: 24px; height: 24px; border: 2px solid #317b50; border-radius: 8px; transform: rotate(-8deg); }
 .brand-mark::before, .brand-mark::after, .brand-mark span { position: absolute; content: ""; border-radius: 50%; background: #317b50; }
@@ -143,7 +159,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 
 .meeting-shell { width: min(100% - 40px, 1180px); margin: 0 auto; padding-bottom: 34px; }
-.meeting-header { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid var(--line); }
 .meeting-tag, .meeting-kicker { display: inline-flex; align-items: center; gap: 7px; color: #6e786e; font-size: 10px; font-weight: 750; letter-spacing: 1.1px; }
 .meeting-user { display: flex; align-items: center; gap: 15px; color: #777d73; font-size: 11px; }
 .meeting-welcome { padding: 31px 0 22px; }
@@ -151,7 +166,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .meeting-welcome h1 em { color: var(--green); font-style: normal; }
 .meeting-welcome > p { margin: 0; color: var(--muted); font-size: 13px; }
 .meeting-card { min-width: 0; padding: 19px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 3px 15px rgb(29 38 29 / 3%); }
-.auth-card { width: min(100%, 430px); margin: 0 auto 30px; }
+.auth-card {
+  width: min(100%, 430px);
+  margin: 0 auto 30px;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.96)), url("/User%20Forms%20Backround.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(49, 123, 80, 0.2);
+  box-shadow: 0 8px 30px rgba(49, 123, 80, 0.06);
+}
 .auth-card h2 { margin: 0 0 18px; font-size: 18px; }
 .meeting-link { padding: 7px 0; }
 .meeting-message { color: #a0433e; font-size: 12px; }
@@ -202,7 +226,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .participant-shell { width: min(100% - 40px, 920px); }
 .participant-shell .view-switch { display: inline-flex; align-items: center; gap: 6px; }
 .participant-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); align-items: start; gap: 13px; }
-.participant-card { min-width: 0; padding: 20px; }
+.participant-card {
+  min-width: 0;
+  padding: 20px;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.97)), url("/User%20Forms%20Backround.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(49, 123, 80, 0.18);
+  box-shadow: 0 6px 24px rgba(49, 123, 80, 0.05);
+}
 .public-event-summary { margin-top: 21px; padding-top: 19px; border-top: 1px solid #eff0ed; }
 .discovery-event-list { display: grid; gap: 8px; max-height: 380px; overflow: auto; }
 .discovery-event { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #eceee8; border-radius: 10px; }
@@ -259,8 +292,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .attendee-type-tag { padding: 2px 6px; border-radius: 99px; color: #53735b; background: #eff5ef; font-size: 9px; font-weight: 700; text-transform: capitalize; }
 .guest-attendee small { color: #858b82; font-size: 10px; overflow-wrap: anywhere; }
 .meeting-join-shell { width: min(100% - 36px, 600px); min-height: 100vh; display: flex; flex-direction: column; margin: 0 auto; padding-bottom: 25px; }
-.meeting-join-header { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
-.meeting-join-card { margin: 34px 0 18px; padding: clamp(20px, 5vw, 34px); }
+.meeting-join-card {
+  margin: 34px 0 18px;
+  padding: clamp(20px, 5vw, 34px);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.96)), url("/User%20Forms%20Backround.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(49, 123, 80, 0.2);
+  box-shadow: 0 8px 30px rgba(49, 123, 80, 0.06);
+}
 .meeting-join-card h1 { margin: 12px 0 7px; font-size: clamp(27px, 6vw, 38px); letter-spacing: -1.3px; line-height: 1.12; }
 .meeting-join-subtitle { margin: 0; color: var(--muted); font-size: 12px; }
 .meeting-join-copy { margin: 20px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
