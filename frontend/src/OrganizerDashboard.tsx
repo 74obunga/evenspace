@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  AlertCircle, ArrowLeft, CalendarDays, CheckCircle2, Copy, Download,
-  ExternalLink, KeyRound, Plus, QrCode, RefreshCw, Search, ShieldAlert,
+  CalendarDays, CheckCircle2, Copy, Download,
+  ExternalLink, KeyRound, Plus, RefreshCw, Search, ShieldAlert,
   Smartphone, Ticket, Trash2, Users,
 } from "lucide-react";
 

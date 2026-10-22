@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CalendarDays, Clipboard, Copy, Download, FileText, Link2, LogIn, Mail, Plus, Printer, QrCode, RefreshCw, Users, X } from "lucide-react";
+import { CalendarDays, Clipboard, Download, FileText, Link2, LogIn, Mail, Plus, Printer, QrCode, RefreshCw, Users } from "lucide-react";
 import WorkspaceInvitations from "./WorkspaceInvitations";
 import OrganizerDashboard from "./OrganizerDashboard";
 import NotificationTemplates from "./NotificationTemplates";

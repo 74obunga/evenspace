@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Check, Mail, RefreshCw, Save, Sliders, ToggleLeft, ToggleRight } from "lucide-react";
+import { Mail, RefreshCw, Save } from "lucide-react";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 

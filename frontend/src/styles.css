@@ -16,7 +16,16 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f5f7f4;
+  background-image: linear-gradient(rgba(245, 247, 244, 0.88), rgba(245, 247, 244, 0.94)), url("/Background%20Image.png");
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
