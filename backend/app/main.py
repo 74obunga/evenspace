@@ -12,7 +12,7 @@ from app.modules.notifications.routes import router as notification_router
 app = FastAPI(title=get_settings().app_name, version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[get_settings().frontend_origin],
+    allow_origins=list(get_settings().frontend_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Idempotency-Key", "X-CSRF-Token", "X-Scan-Device-Token"],

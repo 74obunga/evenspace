@@ -378,6 +378,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 5px; outline: 0; background: #fff;
 }
 
+/* Dark blue content surfaces, with high contrast for card copy. */
+:is(.card, .meeting-card, .participant-card, .auth-card, .meeting-join-card, .stat-card, .scan-list) {
+  color: #f1f5f9;
+  border-color: #294764;
+  background-color: #102a43;
+  box-shadow: 0 8px 24px rgb(7 19 33 / 18%);
+}
+.auth-card, .participant-card, .meeting-join-card { background-image: none; }
+:is(.card, .meeting-card, .participant-card, .auth-card, .meeting-join-card, .stat-card) :is(h1, h2, h3, strong, label) {
+  color: #f8fafc;
+}
+:is(.card, .meeting-card, .participant-card, .auth-card, .meeting-join-card, .stat-card) :is(p, small, time, .field > span, .event-meta, .meeting-tag, .meeting-kicker, .field-help, .meeting-empty, .meeting-placeholder, .ticket-holder, .ticket-event-id, .ticket-type-option small) {
+  color: #c3d2e2;
+}
+:is(.card, .meeting-card, .participant-card, .auth-card, .meeting-join-card) :is(.meeting-list-item, .discovery-event, .ticket-type-option, .ticket-secret, .organizer-search-box) {
+  color: #f1f5f9;
+  border-color: #35516b;
+  background-color: #193750;
+}
+
 @media print {
   body { background: #fff !important; color: #000 !important; }
   .topbar, .meeting-header, .intro, .footer, .no-print, .record-actions,

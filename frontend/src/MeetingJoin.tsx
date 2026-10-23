@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, ShieldCheck, Users } from "lucide-react";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 type MeetingInfo = { meeting_id: string; meeting_type: string; event_title: string; starts_at: string; timezone: string; meeting_mode: "physical" | "online" };
 type MeetingJoinResult = { join_url: string | null };
 

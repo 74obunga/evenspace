@@ -76,7 +76,7 @@ def _check_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     if origin is None:
         return
-    allowed = {get_settings().frontend_origin.rstrip("/"), str(request.base_url).rstrip("/")}
+    allowed = {*get_settings().frontend_origins, str(request.base_url).rstrip("/")}
     if origin.rstrip("/") not in allowed:
         raise HTTPException(status_code=403, detail="Origin is not allowed")
 

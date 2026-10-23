@@ -15,8 +15,8 @@ import PasswordReset from "./PasswordReset";
 import EmailVerification from "./EmailVerification";
 import InvitationAccept from "./InvitationAccept";
 import OrganizerDashboard from "./OrganizerDashboard";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 const CREDENTIAL_PATTERN = /^[0-9a-f]{64}$/;
 
 function hashHex(value: string): Promise<string> {

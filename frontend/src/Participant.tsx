@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Copy, Printer, QrCode, Search, ShieldCheck, Ticket } from "lucide-react";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 type TicketType = { id: string; name: string; description: string | null; price: string; capacity: number | null };
 type EventInfo = {
   id: string; title: string; description: string | null; category: string;

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Mail, RefreshCw, Save } from "lucide-react";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+import { API_BASE } from "./apiBase";
 
 type TemplateItem = {
   key: string;

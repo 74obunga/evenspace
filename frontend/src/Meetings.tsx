@@ -3,8 +3,8 @@ import { CalendarDays, Clipboard, Download, FileText, Link2, LogIn, Mail, Plus, 
 import WorkspaceInvitations from "./WorkspaceInvitations";
 import OrganizerDashboard from "./OrganizerDashboard";
 import NotificationTemplates from "./NotificationTemplates";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 function defaultMeetingTime(hour: number) {
   const date = new Date();
   date.setDate(date.getDate() + 1);
@@ -81,6 +81,8 @@ export default function Meetings({
   const [busy, setBusy] = useState(false);
   const [showOrganizer, setShowOrganizer] = useState(false);
   const [showEmailTemplates, setShowEmailTemplates] = useState(false);
+  const activeWorkspaceId = useRef("");
+  const meetingLoadVersion = useRef(0);
 
   const reloadWorkspaces = useCallback(async () => {
     const rows = await api<Workspace[]>("/workspaces");
@@ -90,16 +92,20 @@ export default function Meetings({
 
   const reloadMeetings = useCallback(async (id = workspaceId) => {
     if (!id) return;
+    const requestedWorkspaceId = id;
     const [meetingRows, eventRows] = await Promise.all([
       api<Meeting[]>(`/workspaces/${id}/meetings`),
       api<EventDetails[]>(`/workspaces/${id}/events`),
     ]);
+    if (activeWorkspaceId.current !== requestedWorkspaceId) return;
     setMeetings(meetingRows);
     setEventTitles(Object.fromEntries(eventRows.map((event) => [event.id, event.title])));
   }, [workspaceId]);
 
   const reloadMeeting = useCallback(async (id: string) => {
     if (!workspaceId) return;
+    const requestedWorkspaceId = workspaceId;
+    const loadVersion = ++meetingLoadVersion.current;
     const root = `/workspaces/${workspaceId}/meetings/${id}`;
     const record = await api<Meeting>(root);
     const [agendaRows, minuteRows, decisionRows, actionRows, inviteeRows, attachmentRows, guestRows, eventRow] = await Promise.all([
@@ -108,11 +114,23 @@ export default function Meetings({
       api<Attachment[]>(`${root}/attachments`), api<GuestRegistration[]>(`${root}/guest-registrations`),
       api<EventDetails>(`/workspaces/${workspaceId}/events/${record.event_id}`),
     ]);
+    if (activeWorkspaceId.current !== requestedWorkspaceId || meetingLoadVersion.current !== loadVersion) return;
     setMeeting(record); setAgenda(agendaRows); setMinutes(minuteRows);
     setEventDetails(eventRow);
     setDecisions(decisionRows); setActions(actionRows); setInvitees(inviteeRows); setAttachments(attachmentRows); setGuestRegistrations(guestRows);
     await reloadMeetings();
   }, [workspaceId, reloadMeetings]);
+
+  useEffect(() => { activeWorkspaceId.current = workspaceId; }, [workspaceId]);
+
+  function changeWorkspace(id: string) {
+    activeWorkspaceId.current = id;
+    meetingLoadVersion.current += 1;
+    setWorkspaceId(id);
+    setMeetings([]); setMeeting(null); setEventDetails(null); setEventTitles({});
+    setAgenda([]); setMinutes([]); setDecisions([]); setActions([]); setInvitees([]);
+    setAttachments([]); setGuestRegistrations([]); setGuestJoinLink(""); setMessage("");
+  }
 
   useEffect(() => {
     void api<{ email: string }>("/auth/me").then((user) => {
@@ -723,7 +741,7 @@ export default function Meetings({
     </header>
     <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> MEETING GOVERNANCE</span><h1>Run the meeting, <em>keep the record.</em></h1><p>Manage agendas, approvals, decisions, attendance, and accountable follow-through.</p></section>
     {message && <div className="notice notice-info" role="status">{message}<button className="meeting-dismiss" onClick={() => setMessage("")}>×</button></div>}
-    <section className="meeting-card workspace-bar"><label className="field"><span>Workspace</span><select value={workspaceId} onChange={(e) => { setWorkspaceId(e.target.value); setMeeting(null); setGuestJoinLink(""); }}>
+    <section className="meeting-card workspace-bar"><label className="field"><span>Workspace</span><select value={workspaceId} onChange={(e) => changeWorkspace(e.target.value)}>
       {workspaces.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.role}</option>)}</select></label><button className="button button-secondary" onClick={() => void reloadMeetings()}><RefreshCw size={15} /> Refresh</button></section>
     <WorkspaceInvitations workspaceId={workspaceId} role={workspaces.find((row) => row.id === workspaceId)?.role ?? ""} />
     {["owner", "admin"].includes(workspaces.find((row) => row.id === workspaceId)?.role ?? "") && (

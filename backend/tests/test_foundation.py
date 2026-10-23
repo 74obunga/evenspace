@@ -142,17 +142,30 @@ def test_member_cannot_read_another_workspace(client):
     assert test_client.get(f"/api/v1/workspaces/{other_id}").status_code == 404
 
 
-def test_scanner_origin_can_make_device_token_requests(client):
+@pytest.mark.parametrize("origin", ["http://localhost:5173", "http://127.0.0.1:5173"])
+def test_scanner_origin_can_make_device_token_requests(client, origin):
     test_client, _engine = client
     response = test_client.options(
         "/api/v1/events/event-id/attendance/sync",
         headers={
-            "Origin": "http://localhost:5173",
+            "Origin": origin,
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "content-type,x-scan-device-token",
         },
     )
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-origin"] == origin
     assert "x-scan-device-token" in response.headers["access-control-allow-headers"].lower()
+
+
+def test_loopback_frontend_origin_can_register(client):
+    test_client, _engine = client
+    origin = "http://127.0.0.1:5173"
+    response = test_client.post("/api/v1/auth/register", headers={"Origin": origin}, json={
+        "email": "loopback@example.com",
+        "password": "correct horse battery staple",
+        "workspace_name": "Loopback Workspace",
+    })
+    assert response.status_code == 201, response.text
+    assert response.headers["access-control-allow-origin"] == origin
 

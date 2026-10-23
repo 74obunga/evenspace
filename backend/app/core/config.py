@@ -1,5 +1,6 @@
 from functools import lru_cache
 import os
+from urllib.parse import urlsplit
 
 
 class Settings:
@@ -35,6 +36,19 @@ class Settings:
     @property
     def frontend_origin(self) -> str:
         return os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+
+    @property
+    def frontend_origins(self) -> tuple[str, ...]:
+        origins = {self.frontend_origin.rstrip("/")}
+        origins.update(
+            origin.strip().rstrip("/")
+            for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+            if origin.strip()
+        )
+        parsed = urlsplit(self.frontend_origin)
+        if parsed.scheme == "http" and parsed.port == 5173 and parsed.hostname in {"localhost", "127.0.0.1"}:
+            origins.update({"http://localhost:5173", "http://127.0.0.1:5173"})
+        return tuple(sorted(origins))
 
     @property
     def payment_provider(self) -> str:

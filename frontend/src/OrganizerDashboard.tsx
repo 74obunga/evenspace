@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   CalendarDays, CheckCircle2, Copy, Download,
   ExternalLink, KeyRound, Plus, RefreshCw, Search, ShieldAlert,
   Smartphone, Ticket, Trash2, Users,
 } from "lucide-react";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 type Workspace = { id: string; name: string; role: string };
 type TicketType = { id: string; name: string; description: string | null; price: string; capacity: number | null; registration_count: number };
 type OrganizerEvent = {
@@ -88,6 +88,8 @@ export default function OrganizerDashboard({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
+  const workspaceGeneration = useRef(0);
+  const activeWorkspaceId = useRef("");
 
   const workspace = workspaces.find((row) => row.id === workspaceId);
   const canManage = !!workspace && ["owner", "admin", "event_manager"].includes(workspace.role);
@@ -96,33 +98,46 @@ export default function OrganizerDashboard({
 
   const reloadEvents = useCallback(async () => {
     if (!workspaceId) { setEvents([]); return; }
-    const rows = await api<OrganizerEvent[]>(`/workspaces/${workspaceId}/events`);
+    const generation = workspaceGeneration.current;
+    const requestedWorkspaceId = workspaceId;
+    const rows = await api<OrganizerEvent[]>(`/workspaces/${requestedWorkspaceId}/events`);
+    if (workspaceGeneration.current !== generation || activeWorkspaceId.current !== requestedWorkspaceId) return;
     setEvents(rows);
     setSelectedId((current) => current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? "");
   }, [workspaceId]);
 
   const reloadRegistrations = useCallback(async () => {
     if (!workspaceId || !selectedId || !canManage) { setRegistrations([]); return; }
-    setRegistrations(await api<Registration[]>(`${base}/${selectedId}/registrations`));
+    const generation = workspaceGeneration.current;
+    const requestedWorkspaceId = workspaceId;
+    const rows = await api<Registration[]>(`${base}/${selectedId}/registrations`);
+    if (workspaceGeneration.current === generation && activeWorkspaceId.current === requestedWorkspaceId) setRegistrations(rows);
   }, [workspaceId, selectedId, canManage, base]);
 
   const reloadDevices = useCallback(async () => {
     if (!workspaceId || !selectedId || !canManage) { setDevices([]); return; }
-    try {
-      setDevices(await api<ScanDeviceItem[]>(`${base}/${selectedId}/scan-devices`));
-    } catch {
-      setDevices([]);
-    }
+    const generation = workspaceGeneration.current;
+    const requestedWorkspaceId = workspaceId;
+    const rows = await api<ScanDeviceItem[]>(`${base}/${selectedId}/scan-devices`);
+    if (workspaceGeneration.current === generation && activeWorkspaceId.current === requestedWorkspaceId) setDevices(rows);
   }, [workspaceId, selectedId, canManage, base]);
 
   const reloadConflicts = useCallback(async () => {
     if (!workspaceId || !selectedId || !canManage) { setConflicts([]); return; }
-    try {
-      setConflicts(await api<OfflineConflict[]>(`${base}/${selectedId}/attendance/conflicts`));
-    } catch {
-      setConflicts([]);
-    }
+    const generation = workspaceGeneration.current;
+    const requestedWorkspaceId = workspaceId;
+    const rows = await api<OfflineConflict[]>(`${base}/${selectedId}/attendance/conflicts`);
+    if (workspaceGeneration.current === generation && activeWorkspaceId.current === requestedWorkspaceId) setConflicts(rows);
   }, [workspaceId, selectedId, canManage, base]);
+
+  function changeWorkspace(id: string) {
+    workspaceGeneration.current += 1;
+    activeWorkspaceId.current = id;
+    setWorkspaceId(id); setSelectedId(""); setEvents([]); setRegistrations([]);
+    setDevices([]); setConflicts([]); setGeneratedToken(null); setMessage(""); setError(false);
+  }
+
+  useEffect(() => { activeWorkspaceId.current = workspaceId; }, [workspaceId]);
 
   useEffect(() => {
     let active = true;
@@ -144,10 +159,16 @@ export default function OrganizerDashboard({
   }, [reloadEvents]);
 
   useEffect(() => {
-    void reloadRegistrations().catch((reason: unknown) => { setRegistrations([]); setError(true); setMessage(reason instanceof Error ? reason.message : "Could not load registrations."); });
-    void reloadDevices();
-    void reloadConflicts();
-  }, [reloadRegistrations, reloadDevices, reloadConflicts]);
+    const generation = workspaceGeneration.current;
+    const requestedWorkspaceId = workspaceId;
+    const reportFailure = (reason: unknown, fallback: string, clear: () => void) => {
+      if (workspaceGeneration.current !== generation || activeWorkspaceId.current !== requestedWorkspaceId) return;
+      clear(); setError(true); setMessage(reason instanceof Error ? reason.message : fallback);
+    };
+    void reloadRegistrations().catch((reason: unknown) => reportFailure(reason, "Could not load registrations.", () => setRegistrations([])));
+    void reloadDevices().catch((reason: unknown) => reportFailure(reason, "Could not load scanner devices.", () => setDevices([])));
+    void reloadConflicts().catch((reason: unknown) => reportFailure(reason, "Could not load sync conflicts.", () => setConflicts([])));
+  }, [workspaceId, reloadRegistrations, reloadDevices, reloadConflicts]);
 
   const visibleRegistrations = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -277,7 +298,7 @@ export default function OrganizerDashboard({
     <section className="meeting-card workspace-bar">
       <label className="field">
         <span>Workspace</span>
-        <select value={workspaceId} onChange={(event) => { setWorkspaceId(event.target.value); setSelectedId(""); }}>
+        <select value={workspaceId} onChange={(event) => changeWorkspace(event.target.value)}>
           {workspaces.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.role.replaceAll("_", " ")}</option>)}
         </select>
       </label>

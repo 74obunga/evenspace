@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
+import { API_BASE } from "./apiBase";
 
 export default function EmailVerification({ token, onDone }: { token: string; onDone: () => void }) {
   const [message, setMessage] = useState("Verifying your email…");

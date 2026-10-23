@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CheckCircle2, Mail, Users } from "lucide-react";
+import { API_BASE } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 type InvitationInfo = { email: string; role: string; workspace_name: string; expires_at: string };
 
 export default function InvitationAccept({ token, onDone }: { token: string; onDone: () => void }) {
