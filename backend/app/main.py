@@ -10,6 +10,7 @@ from app.modules.meetings.routes import public_router as public_meeting_router, 
 from app.modules.notifications.routes import router as notification_router
 
 app = FastAPI(title=get_settings().app_name, version="0.1.0")
+print("CORS_ALLOWED_ORIGINS:", list(get_settings().frontend_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().frontend_origins),
