@@ -180,6 +180,7 @@ export default function Meetings({
 
   async function createMeeting(event: FormEvent) {
     await submit(event, async () => {
+      if (!workspaceId) throw new Error("Select a workspace before scheduling a meeting.");
       if (!meetingStart || !meetingEnd) throw new Error("Choose a start and end time.");
       const created = await api<Meeting>(`/workspaces/${workspaceId}/meetings/schedule`, {
         method: "POST", body: JSON.stringify({
@@ -765,7 +766,7 @@ export default function Meetings({
           <label className="field"><span>Meeting format</span><select value={meetingMode} onChange={(e) => setMeetingMode(e.target.value as "physical" | "online")}><option value="physical">Physical</option><option value="online">Online</option></select></label>
           {meetingMode === "online" && <label className="field"><span>Google Meet or Zoom link</span><input required type="url" value={onlineUrl} onChange={(e) => setOnlineUrl(e.target.value)} placeholder="https://meet.google.com/..." /></label>}
           <small className="meeting-timezone-note">Times use {Intl.DateTimeFormat().resolvedOptions().timeZone || "your device timezone"}.</small>
-          <button className="button button-primary full-width" disabled={busy}><Plus size={15} /> Schedule meeting</button>
+          <button className="button button-primary full-width" disabled={busy || !workspaceId}><Plus size={15} /> Schedule meeting</button>
         </form>
         <div className="meeting-list">{meetings.map((row) => <button key={row.id} className={`meeting-list-item ${meeting?.id === row.id ? "selected" : ""}`} onClick={() => { setGuestJoinLink(""); void reloadMeeting(row.id).catch((e) => setMessage(e.message)); }}>
       <strong>{eventTitles[row.event_id] || row.meeting_type}</strong><span>{row.meeting_type} · {row.status}</span>
