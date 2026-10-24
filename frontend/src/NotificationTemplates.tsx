@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Mail, RefreshCw, Save } from "lucide-react";
-import { API_BASE } from "./apiBase";
+import { api } from "./api";
 
 type TemplateItem = {
   key: string;
@@ -48,10 +48,6 @@ const TEMPLATE_INFO: Record<string, { label: string; description: string; vars: 
   },
 };
 
-function csrfToken() {
-  return document.cookie.split(";").map((p) => p.trim()).find((p) => p.startsWith("evenspace_csrf="))?.split("=").slice(1).join("=") ?? "";
-}
-
 export default function NotificationTemplates({
   workspaceId,
   canManage,
@@ -72,11 +68,7 @@ export default function NotificationTemplates({
     if (!workspaceId) { setTemplates([]); return; }
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/notifications/templates`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error(`Could not load email templates (${response.status})`);
-      const rows = await response.json() as TemplateItem[];
+      const rows = await api<TemplateItem[]>(`/workspaces/${workspaceId}/notifications/templates`);
       setTemplates(rows);
       if (!activeKey && rows.length > 0) {
         selectTemplate(rows[0]);
@@ -109,24 +101,14 @@ export default function NotificationTemplates({
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/notifications/templates/${activeKey}`, {
+      const updated = await api<TemplateItem>(`/workspaces/${workspaceId}/notifications/templates/${activeKey}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken(),
-        },
-        credentials: "include",
         body: JSON.stringify({
           subject_template: subject,
           body_template: body,
           enabled,
         }),
       });
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => null) as { detail?: string } | null;
-        throw new Error(errJson?.detail ?? `Failed to save template (${response.status})`);
-      }
-      const updated = await response.json() as TemplateItem;
       setTemplates((current) => current.map((t) => (t.key === updated.key ? updated : t)));
       setMessage({ tone: "success", text: `Template "${TEMPLATE_INFO[updated.key]?.label || updated.key}" updated.` });
     } catch (err) {

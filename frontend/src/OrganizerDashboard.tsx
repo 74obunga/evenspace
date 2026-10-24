@@ -4,7 +4,7 @@ import {
   ExternalLink, KeyRound, Plus, RefreshCw, Search, ShieldAlert,
   Smartphone, Ticket, Trash2, Users,
 } from "lucide-react";
-import { API_BASE } from "./apiBase";
+import { api } from "./api";
 
 type Workspace = { id: string; name: string; role: string };
 type TicketType = { id: string; name: string; description: string | null; price: string; capacity: number | null; registration_count: number };
@@ -25,23 +25,6 @@ type OfflineConflict = {
   id: string; scan_event_id: string; ticket_id: string | null; attendee_name: string | null;
   scanned_at: string; reason: string; status: string; resolution_note: string | null;
 };
-
-function csrfToken() {
-  return document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("evenspace_csrf="))?.split("=").slice(1).join("=") ?? "";
-}
-
-async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body) headers.set("Content-Type", "application/json");
-  if (init.method && init.method !== "GET") headers.set("X-CSRF-Token", csrfToken());
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as { detail?: string } | null;
-    throw new Error(body?.detail ?? `Request failed (${response.status})`);
-  }
-  if (response.status === 204) return undefined as T;
-  return await response.json() as T;
-}
 
 function csvCell(value: string | null | undefined) {
   return `"${(value ?? "").replaceAll('"', '""')}"`;

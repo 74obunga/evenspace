@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.modules.identity.dependencies import AuthContext, get_auth_context, get_workspace_for_member, require_csrf, require_workspace_manager
 from app.modules.identity.models import Workspace, WorkspaceInvitation, WorkspaceMembership
+from app.modules.identity.security import token_hash, tokens_match
 from app.modules.identity.schemas import (
     LoginRequest,
     PasswordResetAccepted,
@@ -191,6 +192,14 @@ def accept_invitation_endpoint(payload: InvitationAcceptRequest, request: Reques
 @auth_router.get("/me", response_model=UserResponse)
 def current_user(context: AuthContext = Depends(get_auth_context)):
     return UserResponse(id=context.user.id, email=context.user.email)
+
+
+@auth_router.get("/csrf")
+def get_csrf_token(request: Request, context: AuthContext = Depends(get_auth_context)):
+    cookie_token = request.cookies.get(get_settings().csrf_cookie_name, "")
+    if not cookie_token or not tokens_match(context.session.csrf_token_hash, token_hash(cookie_token)):
+        raise HTTPException(status_code=403, detail="CSRF token unavailable or invalid")
+    return {"csrf_token": cookie_token}
 
 
 @auth_router.post("/logout", status_code=204)

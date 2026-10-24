@@ -1,25 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MailPlus, RefreshCw, UserMinus, Users } from "lucide-react";
-import { API_BASE } from "./apiBase";
+import { api as request } from "./api";
 
 type Invitation = { id: string; email: string; role: string; status: string; expires_at: string; created_at: string };
-
-function csrfToken() {
-  return document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("evenspace_csrf="))?.split("=").slice(1).join("=") ?? "";
-}
-
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body) headers.set("Content-Type", "application/json");
-  if (init.method && init.method !== "GET") headers.set("X-CSRF-Token", csrfToken());
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as { detail?: string } | null;
-    throw new Error(body?.detail ?? `Request failed (${response.status})`);
-  }
-  if (response.status === 204) return undefined as T;
-  return await response.json() as T;
-}
 
 export default function WorkspaceInvitations({ workspaceId, role }: { workspaceId: string; role: string }) {
   const [rows, setRows] = useState<Invitation[]>([]);

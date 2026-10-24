@@ -3,6 +3,7 @@ import { CalendarDays, Clipboard, Download, FileText, Link2, LogIn, Mail, Plus, 
 import WorkspaceInvitations from "./WorkspaceInvitations";
 import OrganizerDashboard from "./OrganizerDashboard";
 import NotificationTemplates from "./NotificationTemplates";
+import { api } from "./api";
 import { API_BASE } from "./apiBase";
 
 function defaultMeetingTime(hour: number) {
@@ -22,23 +23,6 @@ type ActionItem = { id: string; title: string; details: string | null; status: s
 type Invitee = { id: string; user_id: string; attendance_status: string; attendance_note: string | null };
 type Attachment = { id: string; filename: string; media_type: string; size_bytes: number; content_sha256: string };
 type GuestRegistration = { id: string; full_name: string; email: string; phone: string; attendee_type: "staff" | "guest"; organization: string | null; attendance_status: string; attendance_note: string | null; registered_at: string };
-
-function csrfToken() {
-  return document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("evenspace_csrf="))?.split("=").slice(1).join("=") ?? "";
-}
-
-async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (init.method && init.method !== "GET") headers.set("X-CSRF-Token", csrfToken());
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as { detail?: string } | null;
-    throw new Error(body?.detail ?? `Request failed (${response.status})`);
-  }
-  if (response.status === 204) return undefined as T;
-  return await response.json() as T;
-}
 
 export default function Meetings({
   onGate,
