@@ -57,7 +57,7 @@ def _set_session_cookies(response: Response, session_token: str, csrf_token: str
     common = {
         "max_age": settings.session_ttl_seconds,
         "secure": settings.session_cookie_secure,
-        "samesite": "lax",
+        "samesite": "none",
         "path": "/",
     }
     response.set_cookie(settings.session_cookie_name, session_token, httponly=True, **common)
