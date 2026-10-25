@@ -3,7 +3,7 @@ from typing import Literal
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
@@ -194,6 +194,8 @@ class MeetingGuestRegistrationCreate(BaseModel):
 
 
 class MeetingGuestRegistrationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     meeting_id: UUID
     full_name: str
