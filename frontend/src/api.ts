@@ -1,7 +1,14 @@
 import { API_BASE } from "./apiBase";
 
 async function getCsrfToken(): Promise<string> {
-  const response = await fetch(`${API_BASE}/auth/csrf`, { credentials: "include" });
+  console.debug("[CSRF] Requesting token from", `${API_BASE}/auth/csrf`);
+
+  const response = await fetch(`${API_BASE}/auth/csrf`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  console.debug("[CSRF] Response status:", response.status);
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { detail?: string } | null;
     throw new Error(body?.detail ?? `Could not get CSRF token (${response.status})`);
