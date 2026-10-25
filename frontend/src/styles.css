@@ -631,3 +631,42 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .intro { margin: 14px 0; padding: 22px 18px; border-radius: 15px; }
   .footer { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
+
+/* Keep the brand and page heading legible at a glance, including on narrow screens. */
+.topbar, .meeting-header, .meeting-join-header {
+  background: #fff !important;
+  background-image: none !important;
+  border-color: #d5e3d6;
+  box-shadow: 0 8px 24px rgb(25 55 32 / 12%);
+}
+.brand {
+  gap: 12px;
+  color: #17472b;
+  font-size: clamp(22px, 3vw, 27px);
+  font-weight: 850;
+  letter-spacing: -1.1px;
+}
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-width: 3px;
+  border-radius: 11px;
+}
+.brand-mark::before { width: 7px; height: 7px; left: 5px; top: 5px; }
+.brand-mark::after { width: 7px; height: 7px; right: 5px; bottom: 5px; }
+.brand-mark span { width: 5px; height: 5px; left: 13px; bottom: 7px; }
+.intro {
+  background: #fff !important;
+  border-color: #d8e5d9;
+  box-shadow: 0 10px 28px rgb(26 47 29 / 10%);
+}
+.intro h1 {
+  max-width: 100%;
+  color: #17251b;
+  font-size: clamp(34px, 8vw, 52px);
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -1.7px;
+  overflow-wrap: anywhere;
+}
+.intro h1 span { color: #216c3d; }
