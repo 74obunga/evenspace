@@ -13,6 +13,7 @@ from app.db.session import get_db
 from app.main import app
 from app.modules.identity.models import User, Workspace, WorkspaceMembership, WorkspaceRole
 from app.modules.identity.security import hash_password
+from app.modules.meetings.models import MeetingGuestRegistration
 
 
 @pytest.fixture()
@@ -655,3 +656,53 @@ def test_manual_check_in_by_event_manager(client):
     assert registrations.status_code == 200
     reg_record = next(r for r in registrations.json() if r["id"] == registration_id)
     assert reg_record["checked_in_at"] is not None
+
+
+def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(client):
+    test_client, engine = client
+    workspace_id, csrf = register_and_login(
+        test_client, engine, "meeting-owner@example.com", "correct horse battery staple", "Meeting Workspace"
+    )
+    headers = {"X-CSRF-Token": csrf}
+    start = datetime.now(timezone.utc) + timedelta(days=2)
+    scheduled = test_client.post(f"/api/v1/workspaces/{workspace_id}/meetings/schedule", headers=headers, json={
+        "title": "Public registration test",
+        "meeting_type": "Community meeting",
+        "start_at": start.isoformat(),
+        "end_at": (start + timedelta(hours=1)).isoformat(),
+        "timezone": "Africa/Nairobi",
+        "meeting_mode": "physical",
+        "online_url": None,
+    })
+    assert scheduled.status_code == 201, scheduled.text
+    meeting_id = scheduled.json()["id"]
+
+    join_link = test_client.post(
+        f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/join-link", headers=headers,
+    )
+    assert join_link.status_code == 200, join_link.text
+    token = join_link.json()["token"]
+    join_url = f"/api/v1/public/meetings/{meeting_id}/join"
+    registration = {
+        "token": token,
+        "full_name": "Taylor Example",
+        "email": "Taylor.Example@Example.com",
+        "phone": "+254 712 345 678",
+        "attendee_type": "guest",
+        "organization": "Example Group",
+    }
+
+    first = test_client.post(join_url, json=registration)
+    assert first.status_code == 201, first.text
+    assert first.json()["registration"]["email"] == "taylor.example@example.com"
+    assert first.json()["registration"]["phone"] == "+254712345678"
+
+    retry = test_client.post(join_url, json=registration)
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["registration"]["id"] == first.json()["registration"]["id"]
+
+    with Session(engine) as session:
+        rows = session.scalars(select(MeetingGuestRegistration).where(
+            MeetingGuestRegistration.meeting_id == UUID(meeting_id),
+        )).all()
+    assert len(rows) == 1

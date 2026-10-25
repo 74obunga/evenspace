@@ -254,7 +254,8 @@ def register_meeting_guest(db: Session, meeting_id: UUID, data: dict):
     join_url = meeting.online_url if meeting.meeting_mode == "online" else None
     if existing is not None:
         return existing, False, join_url
-    guest = MeetingGuestRegistration(meeting_id=meeting.id, email=email, **data)
+    guest_data = {key: value for key, value in data.items() if key != "email"}
+    guest = MeetingGuestRegistration(meeting_id=meeting.id, email=email, **guest_data)
     db.add(guest)
     try:
         db.commit()
