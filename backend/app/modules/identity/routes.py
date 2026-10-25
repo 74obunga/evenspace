@@ -197,8 +197,10 @@ def current_user(context: AuthContext = Depends(get_auth_context)):
 @auth_router.get("/csrf")
 def get_csrf_token(request: Request, context: AuthContext = Depends(get_auth_context)):
     cookie_token = request.cookies.get(get_settings().csrf_cookie_name, "")
-    if not cookie_token or not tokens_match(context.session.csrf_token_hash, token_hash(cookie_token)):
-        raise HTTPException(status_code=403, detail="CSRF token unavailable or invalid")
+    if not cookie_token:
+        raise HTTPException(status_code=403, detail="CSRF cookie missing")
+    if not tokens_match(context.session.csrf_token_hash, token_hash(cookie_token)):
+        raise HTTPException(status_code=403, detail="CSRF cookie invalid")
     return {"csrf_token": cookie_token}
 
 

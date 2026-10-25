@@ -7,6 +7,9 @@ async function getCsrfToken(): Promise<string> {
     throw new Error(body?.detail ?? `Could not get CSRF token (${response.status})`);
   }
   const body = await response.json() as { csrf_token: string };
+  if (typeof body.csrf_token !== "string" || body.csrf_token.trim().length === 0) {
+    throw new Error("CSRF token is missing from the authenticated API response");
+  }
   return body.csrf_token;
 }
 
