@@ -31,6 +31,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set("X-CSRF-Token", await getCsrfToken());
   }
 
+  console.debug("[API CSRF]", {
+    path,
+    method,
+    tokenHeaderPresent: headers.has("X-CSRF-Token"),
+    tokenHeaderNonEmpty: Boolean(headers.get("X-CSRF-Token")?.trim()),
+  });
+
   const response = await fetch(`${API_BASE}${path}`, { ...init, method, headers, credentials: "include" });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { detail?: string } | null;
