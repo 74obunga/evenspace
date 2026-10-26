@@ -729,3 +729,128 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .topbar .current-nav-pill { display: none; }
   .topbar-actions { gap: 6px; }
 }
+
+/* Meeting console layout and interaction polish */
+.meeting-header .meeting-user .meeting-link {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #42594a;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.meeting-header .meeting-user .meeting-link:hover {
+  border-color: #dce8dc;
+  color: #1d633a;
+  background: #f2f8f3;
+}
+.meeting-header .meeting-user > span:not(.current-nav-pill):not(.meeting-tag) {
+  max-width: 210px;
+  overflow: hidden;
+  color: #58675c;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meeting-welcome {
+  position: relative;
+  border-color: #d4e5d6;
+  background:
+    radial-gradient(ellipse at 91% 12%, rgb(213 237 217 / 75%), transparent 34%),
+    linear-gradient(115deg, #fff 0%, #f5faf5 70%, #eaf5eb 100%);
+}
+.meeting-welcome h1 { max-width: 780px; color: #19291e; }
+.meeting-welcome > p { max-width: 600px; line-height: 1.65; }
+.workspace-bar {
+  padding: 15px 17px;
+  border-color: #d9e6da;
+  background: rgb(255 255 255 / 96%);
+}
+.workspace-bar > .button { min-height: 45px; }
+.meeting-tabs {
+  position: sticky;
+  z-index: 3;
+  top: 8px;
+  gap: 5px;
+  padding: 6px;
+  box-shadow: 0 5px 18px rgb(25 55 32 / 7%);
+  backdrop-filter: blur(10px);
+}
+.meeting-tabs button {
+  min-height: 39px;
+  padding-inline: 15px;
+  transition: color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.meeting-tabs button.active { box-shadow: inset 0 0 0 1px #cde2d0; }
+.meeting-layout { grid-template-columns: minmax(270px, 330px) minmax(0, 1fr); }
+.meeting-sidebar {
+  position: sticky;
+  top: 62px;
+  max-height: calc(100vh - 76px);
+  overflow-y: auto;
+  scrollbar-color: #c8d9ca transparent;
+  scrollbar-width: thin;
+}
+.meeting-sidebar .meeting-section-title { align-items: center; }
+.meeting-sidebar .meeting-section-title h2 { font-size: 17px; }
+.meeting-create {
+  padding: 14px;
+  border: 1px solid #e6eee6;
+  border-radius: 12px;
+  background: #f9fcf9;
+}
+.meeting-create .field:last-of-type { margin-bottom: 9px; }
+.meeting-list { max-height: 340px; overflow-y: auto; padding-right: 2px; }
+.meeting-content > .meeting-card { box-shadow: 0 8px 24px rgb(25 55 32 / 5%); }
+.meeting-summary {
+  align-items: flex-start;
+  border-color: #d8e7d9;
+}
+.meeting-summary .meeting-kicker {
+  padding: 5px 8px;
+  border: 1px solid #d5e8d7;
+  border-radius: 99px;
+  color: #2b6845;
+  background: #f0f8f1;
+  letter-spacing: .6px;
+}
+.meeting-summary h2 { line-height: 1.25; }
+.meeting-summary .record-actions { justify-content: flex-end; }
+.meeting-section-title { align-items: center; }
+.meeting-section-title h2 { font-size: 16px; }
+.meeting-record {
+  border-radius: 8px;
+  transition: background-color .15s ease;
+}
+.meeting-record:hover { background: #fbfdfb; }
+.meeting-empty {
+  padding: 14px;
+  border: 1px dashed #dce7dd;
+  border-radius: 10px;
+  background: #fafcfa;
+}
+.manual-attendee-panel {
+  padding: 17px;
+  border-color: #dce8dc;
+  background: linear-gradient(145deg, #f9fcf9, #f3f8f3);
+}
+.guest-attendees {
+  margin-top: 20px;
+  padding-top: 17px;
+}
+
+@media (max-width: 760px) {
+  .meeting-tabs { position: static; overflow-x: auto; flex-wrap: nowrap; }
+  .meeting-tabs button { flex: 0 0 auto; }
+  .meeting-sidebar { max-height: none; overflow: visible; }
+  .meeting-list { max-height: 260px; }
+}
+@media (max-width: 520px) {
+  .meeting-header .meeting-user { justify-content: flex-start; }
+  .meeting-header .meeting-user > span:not(.current-nav-pill):not(.meeting-tag) { display: none; }
+  .meeting-header .meeting-user .meeting-link { padding-inline: 8px; }
+  .meeting-welcome { margin-block: 14px; }
+  .workspace-bar { flex-direction: column; }
+  .workspace-bar > .button { width: 100%; }
+  .meeting-section-title { align-items: flex-start; }
+  .meeting-summary .record-actions { justify-content: flex-start; }
+}
