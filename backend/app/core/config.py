@@ -39,7 +39,12 @@ class Settings:
 
     @property
     def frontend_origins(self) -> tuple[str, ...]:
-        origins = {self.frontend_origin.rstrip("/")}
+        # Keep the deployed static app origin allowed even when FRONTEND_ORIGIN
+        # is left at its local-development default on the API service.
+        origins = {
+            self.frontend_origin.rstrip("/"),
+            "https://evenspace-01.onrender.com",
+        }
         origins.update(
             origin.strip().rstrip("/")
             for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")

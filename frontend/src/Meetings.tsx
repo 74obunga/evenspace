@@ -171,7 +171,6 @@ export default function Meetings({
   function openMeeting(meetingId: string) {
     setGuestJoinLink(""); setMeetingSection("overview");
     navigateMeeting(meetingId);
-    void reloadMeeting(meetingId).catch((error) => setMessage(error.message));
   }
 
   function changeWorkspace(id: string) {
