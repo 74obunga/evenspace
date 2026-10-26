@@ -303,6 +303,7 @@ function App() {
           <button className="view-switch" type="button" onClick={() => setView("events")}>Events</button>
           <button className="view-switch" type="button" onClick={() => setView("meetings")}>Meetings</button>
           <button className="view-switch" type="button" onClick={() => setView("participant")}>My tickets</button>
+          <span className="current-nav-pill" aria-current="page">Gate scanner</span>
           <div className={`connection ${online ? "is-online" : "is-offline"}`} role="status">
             {online ? <Wifi size={15} /> : <CloudOff size={15} />}
             <span>{online ? "Online" : "Offline mode"}</span>

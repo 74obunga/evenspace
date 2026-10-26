@@ -162,6 +162,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .pill-accepted { color: #347148; background: #e9f5ec; }
 .pill-conflict { color: #9d4e46; background: #fff0ee; }
 .pill-duplicate { color: #557285; background: #edf4f8; }
+/* Organizer status pills */
+.status-published { color: #267345; background: #e9f5ec; }
+.status-draft { color: #7a6023; background: #fdf6e3; }
+/* icon-button utility — makes any button look like a plain icon */
+.icon-button { display: inline-grid; place-items: center; border: 0; background: transparent; cursor: pointer; }
 .empty-state { min-height: 104px; display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 7px; border: 1px dashed #dcdfd8; border-radius: 12px; color: #a1a69e; }
 .empty-state p { margin: 0; font-size: 11px; }
 .footer { display: flex; justify-content: space-between; margin-top: 29px; color: #a4a89f; font-size: 9px; }
@@ -424,6 +429,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .ticket-qr { margin: 0 !important; }
 }
 
+/* Attachment file-input inside the inline upload form */
+.attachment-form input[type="file"] { flex: 1; min-width: 0; font-size: 12px; }
+
+/* Organizer stats grid spacing */
+.organizer-stats { margin-bottom: 14px; }
+
+/* Organizer shell table min-width (mirrors gate-scanner shell rule) */
+.meeting-shell .organizer-table { min-width: 480px; }
+
 @media (max-width: 520px) {
   .shell { width: min(100% - 28px, 690px); }
   .topbar { height: 64px; }
@@ -563,7 +577,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .guest-qr-empty p, .guest-qr-details > span, .guest-qr-details > small { color: #526357; font-size: 12px; line-height: 1.6; }
 .guest-qr-details .field input { font-size: 12px; }
 .meeting-qr-image { border-color: #dce7dc; box-shadow: 0 5px 15px rgb(30 55 35 / 6%); }
-.guest-attendees { border-color: #e3ebe3; }
+/* guest-attendees border — consolidated here, removed the duplicate in the base block above */
+.guest-attendees { border-top-color: #e3ebe3; }
 .guest-attendee small { color: #59675c; font-size: 11px; }
 .meeting-join-card { margin-top: 28px; }
 .meeting-join-card h1 { color: #1d2b21; }
@@ -579,6 +594,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 760px) {
   .meeting-layout, .organizer-grid { grid-template-columns: 1fr; }
   .meeting-sidebar, .organizer-event-list { position: static; }
+  /* Notification templates: stack list and editor vertically */
+  .notification-templates-inner { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 520px) {
   .meeting-shell, .participant-shell { width: min(100% - 24px, 1180px); }
@@ -670,3 +687,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   overflow-wrap: anywhere;
 }
 .intro h1 span { color: #216c3d; }
+
+/* Notification templates layout */
+.notification-templates-inner {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+/* Gate topbar: hide the nav-pill label on very small screens to save space */
+@media (max-width: 520px) {
+  .topbar .current-nav-pill { display: none; }
+  .topbar-actions { gap: 6px; }
+}

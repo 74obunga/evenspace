@@ -167,7 +167,7 @@ export default function Participant({
     <section className="intro" id="participant-top">
       <div className="eyebrow"><span className="eyebrow-dot" /> YOUR EVENSPACE TICKETS</div>
       <h1>Good plans, <span>checked in.</span></h1>
-          <p>Browse public events, register for a free ticket, or retrieve an existing ticket with its private credential.</p>
+      <p>Browse public events, register for a free ticket, or retrieve an existing ticket with its private credential.</p>
     </section>
     {message && <div className={`notice notice-${messageTone}`} role={messageTone === "error" ? "alert" : "status"}>
       {messageTone === "success" ? <CheckCircle2 size={18} /> : <ShieldCheck size={18} />}<span>{message}</span>

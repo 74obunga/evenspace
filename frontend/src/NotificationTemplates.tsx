@@ -148,7 +148,7 @@ export default function NotificationTemplates({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: "16px", marginTop: "12px" }}>
+      <div className="notification-templates-inner">
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {templates.map((t) => {
             const info = TEMPLATE_INFO[t.key];

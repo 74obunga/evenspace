@@ -276,7 +276,10 @@ export default function OrganizerDashboard({
       <p>Create and publish events, manage registration capacity, authorize offline scanners, and review attendance.</p>
     </section>
 
-    {message && <div className={`notice ${error ? "notice-error" : "notice-info"}`} role={error ? "alert" : "status"}>{message}</div>}
+    {message && <div className={`notice ${error ? "notice-error" : "notice-info"}`} role={error ? "alert" : "status"}>
+      <span style={{ flex: 1 }}>{message}</span>
+      <button className="icon-button notice-close" type="button" aria-label="Dismiss" onClick={() => { setMessage(""); setError(false); }}>×</button>
+    </div>}
 
     <section className="meeting-card workspace-bar">
       <label className="field">
