@@ -1,6 +1,6 @@
 {
-  "name": "EvenSpace Gate Scanner",
-  "short_name": "EvenSpace Scan",
+  "name": "EvenSpace Meetings",
+  "short_name": "EvenSpace",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f7f5",

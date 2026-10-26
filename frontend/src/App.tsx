@@ -30,7 +30,7 @@ function formatTime(value: string): string {
 }
 
 function App() {
-  const [view, setView] = useState<"scanner" | "meetings" | "events" | "participant">("scanner");
+  const [view, setView] = useState<"scanner" | "meetings" | "events" | "participant">("meetings");
   const [sessions, setSessions] = useState<CachedSession[]>([]);
   const [session, setSession] = useState<CachedSession | null>(null);
   const [eventId, setEventId] = useState("");
