@@ -78,5 +78,23 @@ export default function ApplicationShell({ module, navigate, children }: {
       </aside>
       <div className="app-content">{children}</div>
     </div>
+    <footer className="youth-fund-footer">
+      <a className="youth-fund-footer-brand" href="https://www.youthfund.go.ke/" target="_blank" rel="noreferrer">
+        <img
+          src="https://www.youthfund.go.ke/wp-content/uploads/2016/08/logo2.jpg"
+          alt="Youth Enterprise Development Fund"
+          width="92"
+          height="66"
+          loading="lazy"
+        />
+      </a>
+      <div className="youth-fund-footer-copy">
+        <strong>Youth Enterprise Development Fund (YEDF)</strong>
+        <p>Supporting youth entrepreneurship and employment creation across Kenya.</p>
+      </div>
+      <a className="youth-fund-footer-link" href="https://www.youthfund.go.ke/" target="_blank" rel="noreferrer">
+        Visit Youth Fund
+      </a>
+    </footer>
   </div>;
 }

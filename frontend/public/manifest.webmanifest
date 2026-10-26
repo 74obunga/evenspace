@@ -3,8 +3,8 @@
   "short_name": "EvenSpace",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f7f5",
-  "theme_color": "#f7f7f5",
+  "background_color": "#f8f8f8",
+  "theme_color": "#ed1c24",
   "icons": [
     {
       "src": "/evenspace-icon.svg",
