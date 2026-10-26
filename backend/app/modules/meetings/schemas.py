@@ -1,3 +1,7 @@
+import base64
+import binascii
+import struct
+import zlib
 from datetime import datetime
 from typing import Literal
 from urllib.parse import urlsplit
@@ -158,6 +162,86 @@ class MeetingJoinTokenRequest(BaseModel):
     token: str = Field(min_length=32, max_length=100)
 
 
+MAX_SIGNATURE_BYTES = 96 * 1024
+
+
+def decode_signature_png(value: str) -> bytes:
+    prefix = "data:image/png;base64,"
+    if not value.startswith(prefix):
+        raise ValueError("Signature must be a PNG image")
+    try:
+        raw = base64.b64decode(value[len(prefix):], validate=True)
+    except (binascii.Error, ValueError):
+        raise ValueError("Signature data is invalid") from None
+    if not raw or len(raw) > MAX_SIGNATURE_BYTES or not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("Signature image is empty, invalid, or too large")
+
+    offset = 8
+    image_data = bytearray()
+    width = height = color_type = bit_depth = None
+    ended = False
+    try:
+        while offset < len(raw):
+            length = struct.unpack_from(">I", raw, offset)[0]
+            kind = raw[offset + 4:offset + 8]
+            start = offset + 8
+            end = start + length
+            chunk = raw[start:end]
+            crc = struct.unpack_from(">I", raw, end)[0]
+            if end + 4 > len(raw) or zlib.crc32(kind + chunk) & 0xFFFFFFFF != crc:
+                raise ValueError
+            if kind == b"IHDR":
+                width, height, bit_depth, color_type, compression, filtering, interlace = struct.unpack(">IIBBBBB", chunk)
+                if not (1 <= width <= 1200 and 1 <= height <= 400 and bit_depth == 8 and color_type == 6
+                        and compression == 0 and filtering == 0 and interlace == 0):
+                    raise ValueError
+            elif kind == b"IDAT":
+                image_data.extend(chunk)
+            elif kind == b"IEND":
+                ended = True
+                offset = end + 4
+                break
+            offset = end + 4
+        if not ended or offset != len(raw) or width is None or height is None:
+            raise ValueError
+        stride = width * 4
+        decoded = zlib.decompress(bytes(image_data))
+        if len(decoded) != height * (stride + 1):
+            raise ValueError
+        previous = bytearray(stride)
+        has_ink = False
+        cursor = 0
+        for _ in range(height):
+            filter_type = decoded[cursor]
+            scanline = bytearray(decoded[cursor + 1:cursor + 1 + stride])
+            cursor += stride + 1
+            if filter_type > 4:
+                raise ValueError
+            for index in range(stride):
+                left = scanline[index - 4] if index >= 4 else 0
+                above = previous[index]
+                upper_left = previous[index - 4] if index >= 4 else 0
+                if filter_type == 1:
+                    scanline[index] = (scanline[index] + left) & 255
+                elif filter_type == 2:
+                    scanline[index] = (scanline[index] + above) & 255
+                elif filter_type == 3:
+                    scanline[index] = (scanline[index] + ((left + above) // 2)) & 255
+                elif filter_type == 4:
+                    p = left + above - upper_left
+                    pa, pb, pc = abs(p - left), abs(p - above), abs(p - upper_left)
+                    predictor = left if pa <= pb and pa <= pc else above if pb <= pc else upper_left
+                    scanline[index] = (scanline[index] + predictor) & 255
+            if any(scanline[i + 3] and min(scanline[i], scanline[i + 1], scanline[i + 2]) < 245 for i in range(0, stride, 4)):
+                has_ink = True
+            previous = scanline
+        if not has_ink:
+            raise ValueError
+    except (ValueError, IndexError, struct.error, zlib.error):
+        raise ValueError("Signature must be a non-empty, valid PNG drawing") from None
+    return raw
+
+
 class MeetingGuestRegistrationCreate(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     email: EmailStr
@@ -165,6 +249,32 @@ class MeetingGuestRegistrationCreate(BaseModel):
     attendee_type: Literal["staff", "guest"]
     organization: str | None = Field(default=None, max_length=200)
     token: str = Field(min_length=32, max_length=100)
+    signature_data: str = Field(min_length=30, max_length=131072)
+    gps_latitude: float | None = Field(default=None, ge=-90, le=90)
+    gps_longitude: float | None = Field(default=None, ge=-180, le=180)
+    gps_accuracy_m: float | None = Field(default=None, ge=0, le=100000)
+    gps_captured_at: datetime | None = None
+
+    @field_validator("signature_data")
+    @classmethod
+    def valid_signature(cls, value: str) -> str:
+        decode_signature_png(value)
+        return value
+
+    @field_validator("gps_captured_at")
+    @classmethod
+    def aware_gps_timestamp(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("GPS capture timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def complete_gps_coordinates(self):
+        if (self.gps_latitude is None) != (self.gps_longitude is None):
+            raise ValueError("GPS latitude and longitude must be provided together")
+        if self.gps_latitude is None and (self.gps_accuracy_m is not None or self.gps_captured_at is not None):
+            raise ValueError("GPS accuracy and timestamp require coordinates")
+        return self
 
     @field_validator("full_name")
     @classmethod
@@ -203,6 +313,28 @@ class MeetingGuestRegistrationResponse(BaseModel):
     phone: str
     attendee_type: str
     organization: str | None
+    signature_present: bool = False
+    gps_latitude: float | None = None
+    gps_longitude: float | None = None
+    gps_accuracy_m: float | None = None
+    gps_captured_at: datetime | None = None
+    attendance_status: str
+    attendance_note: str | None = None
+    recorded_by_id: UUID | None = None
+    recorded_at: datetime | None = None
+    registered_at: datetime
+
+
+class MeetingGuestPublicResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    meeting_id: UUID
+    full_name: str
+    email: EmailStr
+    phone: str
+    attendee_type: str
+    organization: str | None
     attendance_status: str
     attendance_note: str | None = None
     recorded_by_id: UUID | None = None
@@ -211,7 +343,7 @@ class MeetingGuestRegistrationResponse(BaseModel):
 
 
 class MeetingGuestJoinResponse(BaseModel):
-    registration: MeetingGuestRegistrationResponse
+    registration: MeetingGuestPublicResponse
     join_url: str | None = None
 
 

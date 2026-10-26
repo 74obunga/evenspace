@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    CheckConstraint, DateTime, ForeignKey, Index, Integer, LargeBinary, String, Text,
+    CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text,
     UniqueConstraint, Uuid, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -82,6 +82,11 @@ class MeetingGuestRegistration(Base):
         UniqueConstraint("meeting_id", "email", name="uq_meeting_guest_email"),
         CheckConstraint("attendee_type IN ('staff','guest')", name="ck_meeting_guest_type"),
         CheckConstraint("attendance_status IN ('registered','present','absent','excused')", name="ck_meeting_guest_attendance"),
+        CheckConstraint("(gps_latitude IS NULL AND gps_longitude IS NULL) OR (gps_latitude IS NOT NULL AND gps_longitude IS NOT NULL)", name="ck_meeting_guest_gps_pair"),
+        CheckConstraint("gps_latitude IS NULL OR gps_latitude BETWEEN -90 AND 90", name="ck_meeting_guest_gps_latitude"),
+        CheckConstraint("gps_longitude IS NULL OR gps_longitude BETWEEN -180 AND 180", name="ck_meeting_guest_gps_longitude"),
+        CheckConstraint("gps_accuracy_m IS NULL OR gps_accuracy_m BETWEEN 0 AND 100000", name="ck_meeting_guest_gps_accuracy"),
+        CheckConstraint("signature_png IS NULL OR length(signature_png) BETWEEN 1 AND 98304", name="ck_meeting_guest_signature_size"),
         Index("ix_meeting_guest_registration", "meeting_id", "registered_at"),
     )
 
@@ -92,11 +97,20 @@ class MeetingGuestRegistration(Base):
     phone: Mapped[str] = mapped_column(String(24))
     attendee_type: Mapped[str] = mapped_column(String(16))
     organization: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    signature_png: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    gps_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_accuracy_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     attendance_status: Mapped[str] = mapped_column(String(16), default="registered", server_default="registered")
     attendance_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     recorded_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def signature_present(self) -> bool:
+        return self.signature_png is not None
 
 
 class MeetingAttachment(Base):

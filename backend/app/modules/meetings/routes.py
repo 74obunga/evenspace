@@ -92,6 +92,23 @@ def get_guest_registrations(workspace_id: UUID, meeting_id: UUID,
     return _call(service.list_guest_registrations, db, workspace_id, meeting_id)
 
 
+@router.get("/{meeting_id}/guest-registrations/{guest_id}/signature")
+def get_guest_signature(workspace_id: UUID, meeting_id: UUID, guest_id: UUID,
+                        _manager: AuthContext = Depends(require_workspace_manager), db: Session = Depends(get_db)):
+    signature = _call(service.get_guest_signature, db, workspace_id, meeting_id, guest_id)
+    return Response(content=signature, media_type="image/png", headers={
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+    })
+
+
+@router.delete("/{meeting_id}/guest-registrations/{guest_id}/privacy-data",
+               response_model=MeetingGuestRegistrationResponse)
+def delete_guest_privacy_data(workspace_id: UUID, meeting_id: UUID, guest_id: UUID,
+                              _manager: AuthContext = Depends(require_workspace_manager),
+                              _csrf: AuthContext = Depends(require_csrf), db: Session = Depends(get_db)):
+    return _call(service.erase_guest_privacy_data, db, workspace_id, meeting_id, guest_id)
+
+
 @router.post("/{meeting_id}/guest-registrations/{guest_id}/attendance",
              response_model=MeetingGuestRegistrationResponse)
 def post_guest_attendance(workspace_id: UUID, meeting_id: UUID, guest_id: UUID,

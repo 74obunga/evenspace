@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+import base64
+import struct
 from uuid import UUID, uuid4
+import zlib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +17,17 @@ from app.main import app
 from app.modules.identity.models import User, Workspace, WorkspaceMembership, WorkspaceRole
 from app.modules.identity.security import hash_password
 from app.modules.meetings.models import MeetingGuestRegistration
+
+
+def signature_data_url():
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    # One visible dark pixel is enough for a tiny, valid test signature image.
+    png = (b"\x89PNG\r\n\x1a\n" +
+           chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)) +
+           chunk(b"IDAT", zlib.compress(b"\x00\x20\x70\x30\xff")) + chunk(b"IEND", b""))
+    return "data:image/png;base64," + base64.b64encode(png).decode("ascii"), png
 
 
 @pytest.fixture()
@@ -683,6 +697,8 @@ def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(cl
     assert join_link.status_code == 200, join_link.text
     token = join_link.json()["token"]
     join_url = f"/api/v1/public/meetings/{meeting_id}/join"
+    signature_data, signature_png = signature_data_url()
+    captured_at = datetime.now(timezone.utc).isoformat()
     registration = {
         "token": token,
         "full_name": "Taylor Example",
@@ -690,12 +706,19 @@ def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(cl
         "phone": "+254 712 345 678",
         "attendee_type": "guest",
         "organization": "Example Group",
+        "signature_data": signature_data,
+        "gps_latitude": -1.2864,
+        "gps_longitude": 36.8172,
+        "gps_accuracy_m": 18.5,
+        "gps_captured_at": captured_at,
     }
 
     first = test_client.post(join_url, json=registration)
     assert first.status_code == 201, first.text
     assert first.json()["registration"]["email"] == "taylor.example@example.com"
     assert first.json()["registration"]["phone"] == "+254712345678"
+    assert "gps_latitude" not in first.json()["registration"]
+    assert "signature_present" not in first.json()["registration"]
 
     retry = test_client.post(join_url, json=registration)
     assert retry.status_code == 200, retry.text
@@ -706,3 +729,61 @@ def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(cl
             MeetingGuestRegistration.meeting_id == UUID(meeting_id),
         )).all()
     assert len(rows) == 1
+    assert rows[0].signature_png == signature_png
+    assert rows[0].gps_latitude == -1.2864
+    assert rows[0].gps_longitude == 36.8172
+    assert rows[0].gps_accuracy_m == 18.5
+    assert rows[0].gps_captured_at is not None
+
+    organizer_rows = test_client.get(
+        f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations", headers=headers,
+    )
+    assert organizer_rows.status_code == 200, organizer_rows.text
+    organizer_attendee = organizer_rows.json()[0]
+    assert organizer_attendee["signature_present"] is True
+    assert organizer_attendee["gps_latitude"] == -1.2864
+    assert "signature_png" not in organizer_attendee
+    signature_response = test_client.get(
+        f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/signature",
+        headers=headers,
+    )
+    assert signature_response.status_code == 200
+    assert signature_response.headers["content-type"] == "image/png"
+    assert signature_response.content == signature_png
+    with TestClient(app) as anonymous_client:
+        unauthorized_signature = anonymous_client.get(
+            f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/signature",
+        )
+    assert unauthorized_signature.status_code == 401
+
+    missing_signature = {key: value for key, value in registration.items() if key != "signature_data"}
+    missing_signature["email"] = "without-signature@example.com"
+    assert test_client.post(join_url, json=missing_signature).status_code == 422
+    malformed_signature = {**registration, "email": "bad-signature@example.com", "signature_data": "data:image/png;base64,not-a-png"}
+    assert test_client.post(join_url, json=malformed_signature).status_code == 422
+    empty_signature = {**registration, "email": "empty-signature@example.com", "signature_data": " "}
+    assert test_client.post(join_url, json=empty_signature).status_code == 422
+    oversized_signature = {**registration, "email": "large-signature@example.com", "signature_data": "x" * 131073}
+    assert test_client.post(join_url, json=oversized_signature).status_code == 422
+    invalid_location = {**registration, "email": "bad-location@example.com", "gps_latitude": 91}
+    assert test_client.post(join_url, json=invalid_location).status_code == 422
+    unpaired_location = {**registration, "email": "unpaired-location@example.com"}
+    del unpaired_location["gps_longitude"]
+    assert test_client.post(join_url, json=unpaired_location).status_code == 422
+
+    no_location = {key: value for key, value in registration.items() if not key.startswith("gps_")}
+    no_location["email"] = "no-location@example.com"
+    no_location_result = test_client.post(join_url, json=no_location)
+    assert no_location_result.status_code == 201, no_location_result.text
+    assert "gps_latitude" not in no_location_result.json()["registration"]
+
+    privacy_url = f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/privacy-data"
+    assert test_client.delete(privacy_url).status_code == 403
+    erased = test_client.delete(privacy_url, headers=headers)
+    assert erased.status_code == 200, erased.text
+    assert erased.json()["signature_present"] is False
+    assert erased.json()["gps_latitude"] is None
+    assert test_client.get(
+        f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/signature",
+        headers=headers,
+    ).status_code == 404

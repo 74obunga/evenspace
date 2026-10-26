@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CalendarDays, Clipboard, Download, FileText, Link2, LogIn, Mail, Plus, Printer, QrCode, RefreshCw, Users } from "lucide-react";
+import { CalendarDays, Clipboard, Download, FileText, Link2, LogIn, Mail, MapPin, Plus, Printer, QrCode, RefreshCw, Users } from "lucide-react";
 import WorkspaceInvitations from "./WorkspaceInvitations";
 import OrganizerDashboard from "./OrganizerDashboard";
 import NotificationTemplates from "./NotificationTemplates";
@@ -22,7 +22,8 @@ type Decision = { id: string; decision_number: number; title: string; details: s
 type ActionItem = { id: string; title: string; details: string | null; status: string; due_at: string | null };
 type Invitee = { id: string; user_id: string; attendance_status: string; attendance_note: string | null };
 type Attachment = { id: string; filename: string; media_type: string; size_bytes: number; content_sha256: string };
-type GuestRegistration = { id: string; full_name: string; email: string; phone: string; attendee_type: "staff" | "guest"; organization: string | null; attendance_status: string; attendance_note: string | null; registered_at: string };
+type GuestRegistration = { id: string; meeting_id: string; full_name: string; email: string; phone: string; attendee_type: "staff" | "guest"; organization: string | null; attendance_status: string; attendance_note: string | null; registered_at: string; signature_present: boolean; gps_latitude: number | null; gps_longitude: number | null; gps_accuracy_m: number | null; gps_captured_at: string | null };
+type MeetingSection = "overview" | "attendees" | "records" | "invitations" | "checkin";
 
 export default function Meetings({
   onGate,
@@ -54,6 +55,9 @@ export default function Meetings({
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [guestRegistrations, setGuestRegistrations] = useState<GuestRegistration[]>([]);
+  const [meetingSection, setMeetingSection] = useState<MeetingSection>("overview");
+  const [meetingSearch, setMeetingSearch] = useState("");
+  const [signaturePreview, setSignaturePreview] = useState<{ attendeeId: string; url: string } | null>(null);
   const [guestJoinLink, setGuestJoinLink] = useState("");
   const [meetingTitle, setMeetingTitle] = useState("");
   const [meetingType, setMeetingType] = useState("General meeting");
@@ -67,6 +71,27 @@ export default function Meetings({
   const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   const activeWorkspaceId = useRef("");
   const meetingLoadVersion = useRef(0);
+
+  useEffect(() => () => { if (signaturePreview) URL.revokeObjectURL(signaturePreview.url); }, [signaturePreview]);
+
+  async function toggleSignaturePreview(attendeeId: string) {
+    if (signaturePreview?.attendeeId === attendeeId) { setSignaturePreview(null); return; }
+    if (!meeting || !workspaceId) return;
+    try {
+      const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/meetings/${meeting.id}/guest-registrations/${attendeeId}/signature`, { credentials: "include", cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 404 ? "Signature image is unavailable." : `Could not load signature (${response.status}).`);
+      const url = URL.createObjectURL(await response.blob());
+      setSignaturePreview({ attendeeId, url });
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not load the attendee signature."); }
+  }
+
+  function eraseAttendeePrivacyData(attendeeId: string) {
+    if (!meeting || !window.confirm("Permanently remove this attendee’s saved signature and location? Their registration and attendance record will remain.")) return;
+    void submit(new Event("submit") as unknown as FormEvent,
+      () => api(`${base}/guest-registrations/${attendeeId}/privacy-data`, { method: "DELETE" }),
+      "Saved signature and location data removed.");
+    if (signaturePreview?.attendeeId === attendeeId) setSignaturePreview(null);
+  }
 
   const reloadWorkspaces = useCallback(async () => {
     const rows = await api<Workspace[]>("/workspaces");
@@ -113,7 +138,7 @@ export default function Meetings({
     setWorkspaceId(id);
     setMeetings([]); setMeeting(null); setEventDetails(null); setEventTitles({});
     setAgenda([]); setMinutes([]); setDecisions([]); setActions([]); setInvitees([]);
-    setAttachments([]); setGuestRegistrations([]); setGuestJoinLink(""); setMessage("");
+    setAttachments([]); setGuestRegistrations([]); setGuestJoinLink(""); setSignaturePreview(null); setMeetingSection("overview"); setMessage("");
   }
 
   useEffect(() => {
@@ -728,8 +753,21 @@ export default function Meetings({
     {message && <div className="notice notice-info" role="status">{message}<button className="meeting-dismiss" onClick={() => setMessage("")}>×</button></div>}
     <section className="meeting-card workspace-bar"><label className="field"><span>Workspace</span><select value={workspaceId} onChange={(e) => changeWorkspace(e.target.value)}>
       {workspaces.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.role}</option>)}</select></label><button className="button button-secondary" onClick={() => void reloadMeetings()}><RefreshCw size={15} /> Refresh</button></section>
-    <WorkspaceInvitations workspaceId={workspaceId} role={workspaces.find((row) => row.id === workspaceId)?.role ?? ""} />
-    {["owner", "admin"].includes(workspaces.find((row) => row.id === workspaceId)?.role ?? "") && (
+    <nav className="meeting-tabs" role="group" aria-label="Meeting workspace sections">
+      {(["overview", "attendees", "records", "invitations", "checkin"] as MeetingSection[]).map((section) => <button key={section} type="button" aria-pressed={meetingSection === section} className={meetingSection === section ? "active" : ""} onClick={() => setMeetingSection(section)}>
+        {section === "records" ? "Agenda & records" : section === "checkin" ? "Check-in" : section[0].toUpperCase() + section.slice(1)}
+      </button>)}
+    </nav>
+    {meetingSection === "invitations" && <div className="meeting-settings-panels">
+      {meeting && <section className="meeting-card">
+        <div className="meeting-section-title"><div><h2>Meeting invitees</h2><p>Add workspace members to this meeting’s attendee list.</p></div></div>
+        <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/invitees`, { method: "POST", body: JSON.stringify({ user_id: new FormData(event.currentTarget).get("user_id") }) }), "Meeting invitee added.")}>
+          <input name="user_id" required placeholder="Workspace member account ID" /><button className="button button-primary" disabled={busy}>Add invitee</button>
+        </form>
+        <p className="meeting-empty">Review invitee status and record attendance in the Attendees section.</p>
+      </section>}
+      <WorkspaceInvitations workspaceId={workspaceId} role={workspaces.find((row) => row.id === workspaceId)?.role ?? ""} />
+      {["owner", "admin"].includes(workspaces.find((row) => row.id === workspaceId)?.role ?? "") && (
       <section className="meeting-card">
         <div className="meeting-section-title">
           <div><h2><Mail size={16} style={{ display: "inline", verticalAlign: "middle" }} /> Email Templates</h2><p>Customize automated notification emails for this workspace</p></div>
@@ -739,7 +777,8 @@ export default function Meetings({
         </div>
         {showEmailTemplates && <NotificationTemplates workspaceId={workspaceId} canManage={true} />}
       </section>
-    )}
+      )}
+    </div>}
     <div className="meeting-layout">
       <aside className="meeting-card meeting-sidebar"><div className="meeting-section-title"><div><h2>Meetings</h2><p>Private workspace events</p></div></div>
         <form className="meeting-create" onSubmit={(e) => void createMeeting(e)}>
@@ -752,12 +791,13 @@ export default function Meetings({
           <small className="meeting-timezone-note">Times use {Intl.DateTimeFormat().resolvedOptions().timeZone || "your device timezone"}.</small>
           <button className="button button-primary full-width" disabled={busy || !workspaceId}><Plus size={15} /> Schedule meeting</button>
         </form>
-        <div className="meeting-list">{meetings.map((row) => <button key={row.id} className={`meeting-list-item ${meeting?.id === row.id ? "selected" : ""}`} onClick={() => { setGuestJoinLink(""); void reloadMeeting(row.id).catch((e) => setMessage(e.message)); }}>
+        <label className="field meeting-search"><span>Search meetings</span><input type="search" value={meetingSearch} onChange={(event) => setMeetingSearch(event.target.value)} placeholder="Search by title or type" /></label>
+        <div className="meeting-list">{meetings.filter((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())).map((row) => <button key={row.id} className={`meeting-list-item ${meeting?.id === row.id ? "selected" : ""}`} onClick={() => { setGuestJoinLink(""); setMeetingSection("overview"); void reloadMeeting(row.id).catch((e) => setMessage(e.message)); }}>
       <strong>{eventTitles[row.event_id] || row.meeting_type}</strong><span>{row.meeting_type} · {row.status}</span>
-        </button>)}{!meetings.length && <p className="meeting-empty">No meeting records yet.</p>}</div>
+        </button>)}{!meetings.length && <p className="meeting-empty">No meeting records yet.</p>}{meetings.length > 0 && !meetings.some((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())) && <p className="meeting-empty">No meetings match your search.</p>}</div>
       </aside>
       {meeting ? <div className="meeting-content">
-        <section className="meeting-card meeting-summary"><div><span className="meeting-kicker">{meeting.status.toUpperCase()} · {meeting.meeting_type}</span><h2>{eventDetails?.title || meeting.meeting_type}</h2><p>{eventDetails ? `${new Date(eventDetails.start_at).toLocaleString()} · ${eventDetails.timezone}` : `Event ID · ${meeting.event_id}`}</p></div>
+        {meetingSection === "overview" && <section className="meeting-card meeting-summary"><div><span className="meeting-kicker">{meeting.status.toUpperCase()} · {meeting.meeting_type}</span><h2>{eventDetails?.title || meeting.meeting_type}</h2><p>{eventDetails ? `${new Date(eventDetails.start_at).toLocaleString()} · ${eventDetails.timezone}` : `Event ID · ${meeting.event_id}`}</p><p>{meeting.meeting_mode === "online" ? "Online meeting" : "Physical meeting"}</p></div>
           <div className="record-actions">
             <button className="button button-secondary" type="button" onClick={() => void printMeetingReport()} title="Print complete meeting package (agenda, minutes, decisions, actions, attendance)"><FileText size={14} /> Full Dossier / PDF</button>
             {meeting.status === "scheduled" && meeting.meeting_mode === "online" && meeting.online_url && <a className="button button-secondary" href={meeting.online_url} target="_blank" rel="noreferrer">Join online</a>}
@@ -765,12 +805,12 @@ export default function Meetings({
             {meeting.status === "scheduled" && <button className="button button-primary" disabled={busy} onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/status`, { method: "POST", body: JSON.stringify({ status: "held" }) }), "Meeting marked held.")}>Mark held</button>}
             {meeting.status === "scheduled" && <button className="button button-secondary" disabled={busy} onClick={() => { const note = window.prompt("Reason for cancellation"); if (note?.trim()) void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/status`, { method: "POST", body: JSON.stringify({ status: "cancelled", note }) }), "Meeting cancelled."); }}>Cancel</button>}
           </div>
-        </section>
-        {meeting.status === "scheduled" && <section className="meeting-card guest-qr-card">
+        </section>}
+        {meetingSection === "checkin" && meeting.status === "scheduled" && <section className="meeting-card guest-qr-card">
           <div className="meeting-section-title"><div><h2>Guest registration QR</h2><p>Attendees scan this code to join the meeting list.</p></div><span className="meeting-kicker"><QrCode size={14} /> PRIVATE LINK</span></div>
           {!guestJoinLink ? <div className="guest-qr-empty"><p>Generate a QR after scheduling, then display it at the entrance or share its link with attendees. Attendee phones must be able to reach the address used to open EvenSpace.</p><button className="button button-primary" disabled={busy} onClick={() => void generateGuestJoinLink()}><QrCode size={15} /> Generate meeting QR</button></div> : <div className="guest-qr-content">
             <MeetingQrCode value={guestJoinLink} />
-            <div className="guest-qr-details"><strong>{eventDetails?.title || meeting.meeting_type} registration</strong><span>Staff and guests can register with their name, email, and phone number.</span><label className="field"><span>Join link</span><input readOnly value={guestJoinLink} onFocus={(event) => event.currentTarget.select()} /></label>
+            <div className="guest-qr-details"><strong>{eventDetails?.title || meeting.meeting_type} registration</strong><span>Staff and guests register with their contact details and a signature. Location sharing is optional.</span><label className="field"><span>Join link</span><input readOnly value={guestJoinLink} onFocus={(event) => event.currentTarget.select()} /></label>
               <div className="record-actions">
                 <button className="button button-primary" type="button" onClick={() => void printInviteQr()}><Printer size={14} /> Print QR sign</button>
                 <button className="button button-secondary" type="button" onClick={() => void downloadQrSvg()}><Download size={14} /> Download SVG</button>
@@ -782,6 +822,12 @@ export default function Meetings({
             </div>
           </div>}
         </section>}
+        {meetingSection === "checkin" && meeting.status !== "scheduled" && <section className="meeting-card">
+          <div className="meeting-section-title"><div><h2>Meeting check-in</h2><p>QR registration links close when a meeting is held or cancelled.</p></div></div>
+          <p className="meeting-empty">This meeting is {meeting.status}. Review its saved attendee registrations and record attendance in the Attendees section.</p>
+          <button className="button button-secondary" type="button" onClick={() => setMeetingSection("attendees")}>Review attendees</button>
+        </section>}
+        {meetingSection === "records" && <>
         <section className="meeting-card"><div className="meeting-section-title"><div><h2>Agenda</h2><p>Ordered discussion items</p></div></div>
           <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/agenda`, { method: "POST", body: JSON.stringify({ title: new FormData(event.currentTarget).get("title"), description: new FormData(event.currentTarget).get("description") || null }) }), "Agenda item added.")}>
             <input name="title" required placeholder="Agenda item" /><input name="description" placeholder="Purpose or notes" /><button className="button button-primary" disabled={busy}>Add</button>
@@ -798,8 +844,8 @@ export default function Meetings({
           }, "Attachment uploaded.")}><input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg,.txt,.docx,.xlsx,.pptx" /><button className="button button-primary" disabled={busy}>Upload file</button></form>
           <div className="meeting-record-list">{attachments.map((file) => <div className="meeting-record" key={file.id}><div><strong>{file.filename}</strong><small>{(file.size_bytes / 1024).toFixed(1)} KB · {file.media_type}</small></div><div className="record-actions"><a className="button button-secondary" href={`${API_BASE}/workspaces/${workspaceId}/meetings/${meeting.id}/attachments/${file.id}/download`} target="_blank" rel="noreferrer">Download</a><button className="meeting-remove" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/attachments/${file.id}`, { method: "DELETE" }), "Attachment deleted.")}>Delete</button></div></div>)}{!attachments.length && <p className="meeting-empty">No meeting files uploaded.</p>}</div>
         </section>
-        <section className="meeting-card"><div className="meeting-section-title"><div><h2>Invitees & attendance</h2><p><Users size={13} /> Invite members or collect guest registrations from the QR code</p></div></div>
-          <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/invitees`, { method: "POST", body: JSON.stringify({ user_id: new FormData(event.currentTarget).get("user_id") }) }), "Invitee added.")}><input name="user_id" required placeholder="Workspace member user ID" /><button className="button button-primary" disabled={busy}>Invite</button></form>
+        </>}
+        {meetingSection === "attendees" && <section className="meeting-card"><div className="meeting-section-title"><div><h2>Attendees & attendance</h2><p><Users size={13} /> Member invitees and registered guests</p></div></div>
           <div className="meeting-record-list">{invitees.map((person) => <div className="meeting-record" key={person.id}><div><strong>{person.user_id}</strong><small>Attendance · {person.attendance_status}{person.attendance_note ? ` · ${person.attendance_note}` : ""}</small></div>{meeting.status === "held" && <select aria-label="Attendance" value={person.attendance_status === "pending" ? "present" : person.attendance_status} onChange={(e) => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/invitees/${person.id}/attendance`, { method: "POST", body: JSON.stringify({ status: e.target.value }) }), "Attendance saved.")}><option value="present">Present</option><option value="absent">Absent</option><option value="excused">Excused</option></select>}</div>)}{!invitees.length && !guestRegistrations.length && <p className="meeting-empty">No one has joined this meeting yet.</p>}</div>
           <div className="guest-attendees">
             <div className="guest-attendees-heading">
@@ -820,10 +866,15 @@ export default function Meetings({
                 </button>
               </div>
             </div>
-            {guestRegistrations.map((person) => <div className="meeting-record guest-attendee" key={person.id}><div><strong>{person.full_name} <span className="attendee-type-tag">{person.attendee_type}</span></strong><small>{person.email} · {person.phone}{person.organization ? ` · ${person.organization}` : ""}</small><small>Registered {new Date(person.registered_at).toLocaleString()} · {person.attendance_status}</small></div><div className="record-actions">{meeting.status === "scheduled" && meeting.meeting_mode === "online" && meeting.online_url && <a className="button button-secondary" href={meeting.online_url} target="_blank" rel="noreferrer">Join online</a>}{meeting.status === "held" && <select aria-label={`Attendance for ${person.full_name}`} value={person.attendance_status === "registered" ? "present" : person.attendance_status} onChange={(e) => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/guest-registrations/${person.id}/attendance`, { method: "POST", body: JSON.stringify({ status: e.target.value }) }), "Guest attendance saved.")}><option value="present">Present</option><option value="absent">Absent</option><option value="excused">Excused</option></select>}</div></div>)}
+            {guestRegistrations.map((person) => <div className="meeting-record guest-attendee" key={person.id}><div><strong>{person.full_name} <span className="attendee-type-tag">{person.attendee_type}</span></strong><small>{person.email} · {person.phone}{person.organization ? ` · ${person.organization}` : ""}</small><small>Registered {new Date(person.registered_at).toLocaleString()} · {person.attendance_status}</small>
+              {person.gps_latitude !== null && person.gps_longitude !== null && <small className="guest-location"><MapPin size={12} /> {person.gps_latitude.toFixed(5)}, {person.gps_longitude.toFixed(5)}{person.gps_accuracy_m !== null ? ` · ±${Math.round(person.gps_accuracy_m)} m` : ""}{person.gps_captured_at ? ` · ${new Date(person.gps_captured_at).toLocaleString()}` : ""}</small>}
+              {person.signature_present && <div className="guest-signature-access"><button className="meeting-link" type="button" onClick={() => void toggleSignaturePreview(person.id)}>{signaturePreview?.attendeeId === person.id ? "Hide signature" : "View signature"}</button>{signaturePreview?.attendeeId === person.id && <img src={signaturePreview.url} alt={`Digital signature provided by ${person.full_name}`} />}</div>}
+              {(person.signature_present || person.gps_latitude !== null) && <button className="meeting-remove" type="button" disabled={busy} onClick={() => eraseAttendeePrivacyData(person.id)}>Delete signature & location data</button>}
+            </div><div className="record-actions">{meeting.status === "scheduled" && meeting.meeting_mode === "online" && meeting.online_url && <a className="button button-secondary" href={meeting.online_url} target="_blank" rel="noreferrer">Join online</a>}{meeting.status === "held" && <select aria-label={`Attendance for ${person.full_name}`} value={person.attendance_status === "registered" ? "present" : person.attendance_status} onChange={(e) => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/guest-registrations/${person.id}/attendance`, { method: "POST", body: JSON.stringify({ status: e.target.value }) }), "Guest attendance saved.")}><option value="present">Present</option><option value="absent">Absent</option><option value="excused">Excused</option></select>}</div></div>)}
             {!guestRegistrations.length && <p className="meeting-empty">Guest registrations from the QR form will appear here.</p>}
           </div>
-        </section>
+        </section>}
+        {meetingSection === "records" && <>
         <section className="meeting-card"><div className="meeting-section-title"><div><h2>Minutes</h2><p>Submitted and approved versions are retained as revisions</p></div></div>
           <form className="meeting-stack-form" onSubmit={(event) => void submit(event, () => api(`${base}/minutes`, { method: "POST", body: JSON.stringify({ content: new FormData(event.currentTarget).get("content") }) }), "Minutes revision saved.")}><textarea name="content" required rows={4} placeholder="Write the meeting minutes…" /><button className="button button-primary" disabled={busy}>Save new revision</button></form>
           <div className="meeting-record-list">{minutes.map((row) => <article className="meeting-record" key={row.id}><div><strong>Revision {row.revision} · {row.status}</strong><small>{row.content}</small></div><div className="record-actions">{row.status === "draft" && <button className="button button-secondary" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/minutes/${row.id}/submit`, { method: "POST" }), "Minutes submitted.")}>Submit</button>}{row.status === "submitted" && <button className="button button-primary" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/minutes/${row.id}/approve`, { method: "POST", body: JSON.stringify({ note: null }) }), "Minutes approved.")}>Approve</button>}{row.status === "approved" && (
@@ -845,6 +896,7 @@ export default function Meetings({
           <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/action-items`, { method: "POST", body: JSON.stringify({ title: new FormData(event.currentTarget).get("title") }) }), "Action item added.")}><input name="title" required placeholder="Action to follow up" /><button className="button button-primary" disabled={busy}>Add</button></form>
           <div className="meeting-record-list">{actions.map((row) => <div className="meeting-record" key={row.id}><div><strong>{row.title}</strong><small>{row.status.replace("_", " ")}</small></div>{row.status !== "completed" && row.status !== "cancelled" && <button className="button button-secondary" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/action-items/${row.id}/status`, { method: "POST", body: JSON.stringify({ status: row.status === "open" ? "in_progress" : "completed" }) }), "Action status updated.")}>{row.status === "open" ? "Start" : "Complete"}</button>}</div>)}{!actions.length && <p className="meeting-empty">No actions assigned yet.</p>}</div>
         </section>
+        </>}
       </div> : <section className="meeting-card meeting-placeholder"><CalendarDays size={28} /><h2>Select or create a meeting</h2><p>Choose a meeting on the left to open its institutional record.</p></section>}
     </div>
     <footer className="footer"><span>EVENSPACE</span><span>Institutional meeting records</span></footer>

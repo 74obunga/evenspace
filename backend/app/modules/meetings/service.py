@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timezone
 from hashlib import sha256
 import secrets
@@ -254,7 +255,10 @@ def register_meeting_guest(db: Session, meeting_id: UUID, data: dict):
     join_url = meeting.online_url if meeting.meeting_mode == "online" else None
     if existing is not None:
         return existing, False, join_url
-    guest_data = {key: value for key, value in data.items() if key != "email"}
+    signature_data = data.pop("signature_data")
+    signature_png = base64.b64decode(signature_data.split(",", 1)[1], validate=True)
+    guest_data = {key: value for key, value in data.items() if key not in {"email", "token"}}
+    guest_data["signature_png"] = signature_png
     guest = MeetingGuestRegistration(meeting_id=meeting.id, email=email, **guest_data)
     db.add(guest)
     try:
@@ -277,6 +281,35 @@ def list_guest_registrations(db: Session, workspace_id: UUID, meeting_id: UUID):
     return list(db.scalars(select(MeetingGuestRegistration).where(
         MeetingGuestRegistration.meeting_id == meeting.id,
     ).order_by(MeetingGuestRegistration.registered_at)))
+
+
+def get_guest_signature(db: Session, workspace_id: UUID, meeting_id: UUID, guest_id: UUID) -> bytes:
+    meeting = _meeting(db, workspace_id, meeting_id)
+    guest = db.scalar(select(MeetingGuestRegistration).where(
+        MeetingGuestRegistration.meeting_id == meeting.id,
+        MeetingGuestRegistration.id == guest_id,
+    ))
+    if guest is None or guest.signature_png is None:
+        raise MeetingNotFound
+    return guest.signature_png
+
+
+def erase_guest_privacy_data(db: Session, workspace_id: UUID, meeting_id: UUID, guest_id: UUID):
+    meeting = _meeting(db, workspace_id, meeting_id)
+    guest = db.scalar(select(MeetingGuestRegistration).where(
+        MeetingGuestRegistration.meeting_id == meeting.id,
+        MeetingGuestRegistration.id == guest_id,
+    ).with_for_update())
+    if guest is None:
+        raise MeetingNotFound
+    guest.signature_png = None
+    guest.gps_latitude = None
+    guest.gps_longitude = None
+    guest.gps_accuracy_m = None
+    guest.gps_captured_at = None
+    db.commit()
+    db.refresh(guest)
+    return guest
 
 
 def record_guest_attendance(db: Session, workspace_id: UUID, meeting_id: UUID, guest_id: UUID,
