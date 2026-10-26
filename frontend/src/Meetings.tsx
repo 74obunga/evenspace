@@ -22,8 +22,16 @@ type Decision = { id: string; decision_number: number; title: string; details: s
 type ActionItem = { id: string; title: string; details: string | null; status: string; due_at: string | null };
 type Invitee = { id: string; user_id: string; attendance_status: string; attendance_note: string | null };
 type Attachment = { id: string; filename: string; media_type: string; size_bytes: number; content_sha256: string };
-type GuestRegistration = { id: string; meeting_id: string; full_name: string; email: string; phone: string; attendee_type: "staff" | "guest"; organization: string | null; attendance_status: string; attendance_note: string | null; registered_at: string; signature_present: boolean; gps_latitude: number | null; gps_longitude: number | null; gps_accuracy_m: number | null; gps_captured_at: string | null };
+type GuestRegistration = { id: string; meeting_id: string; full_name: string; email: string; phone: string; attendee_type: string; organization: string | null; attendance_status: string; attendance_note: string | null; registered_at: string; registration_source: "qr" | "admin"; registered_by_id: string | null; signature_present: boolean; gps_latitude: number | null; gps_longitude: number | null; gps_accuracy_m: number | null; gps_captured_at: string | null };
 type MeetingSection = "overview" | "attendees" | "records" | "invitations" | "checkin";
+
+function attendeeRoleLabel(role: string) {
+  const labels: Record<string, string> = {
+    speaker: "Speaker", secretary: "Secretary", chairperson: "Chairperson",
+    member_delegate: "Member / Delegate", staff: "Staff", guest: "Guest",
+  };
+  return labels[role] ?? role;
+}
 
 export default function Meetings({
   onGate,
@@ -131,6 +139,40 @@ export default function Meetings({
   }, [workspaceId, reloadMeetings]);
 
   useEffect(() => { activeWorkspaceId.current = workspaceId; }, [workspaceId]);
+
+  useEffect(() => {
+    const applyContext = (event?: Event) => {
+      const route = event instanceof CustomEvent && typeof event.detail === "string" ? event.detail : `${window.location.pathname}${window.location.hash}`;
+      const parts = route.split("#")[0].split("/").filter(Boolean);
+      const routeMeetingId = parts[0] === "meetings" && /^[0-9a-f-]{36}$/i.test(parts[1] ?? "") ? parts[1] : "";
+      const routeSection = parts[2] === "attendees" ? "attendees" : parts[2] === "agenda" ? "records"
+        : parts[2] === "attendance" ? "checkin" : parts[2] === "invitations" ? "invitations" : "";
+      const hashSection = route.split("#")[1];
+      const section = (routeSection || hashSection) as MeetingSection | undefined;
+      if (section && ["overview", "attendees", "records", "invitations", "checkin"].includes(section)) {
+        setMeetingSection(section);
+        window.setTimeout(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+      } else if (routeMeetingId && !routeSection && !hashSection) setMeetingSection("overview");
+      if (workspaceId && routeMeetingId && routeMeetingId !== meeting?.id) void reloadMeeting(routeMeetingId).catch((error) => setMessage(error.message));
+      else if (route === "/meetings" || route === "/meetings/") setMeeting(null);
+    };
+    applyContext();
+    window.addEventListener("evenspace:navigate", applyContext);
+    return () => window.removeEventListener("evenspace:navigate", applyContext);
+  }, [workspaceId, meeting?.id, reloadMeeting]);
+
+  function navigateMeeting(meetingId: string, section: MeetingSection = "overview") {
+    const sectionPath = section === "overview" ? "" : `/${section === "records" ? "agenda" : section === "checkin" ? "attendance" : section}`;
+    const path = `/meetings/${meetingId}${sectionPath}`;
+    window.history.pushState({}, "", path);
+    window.dispatchEvent(new CustomEvent("evenspace:navigate", { detail: path }));
+  }
+
+  function openMeeting(meetingId: string) {
+    setGuestJoinLink(""); setMeetingSection("overview");
+    navigateMeeting(meetingId);
+    void reloadMeeting(meetingId).catch((error) => setMessage(error.message));
+  }
 
   function changeWorkspace(id: string) {
     activeWorkspaceId.current = id;
@@ -428,7 +470,7 @@ export default function Meetings({
         row.full_name,
         row.email,
         row.phone,
-        row.attendee_type,
+        attendeeRoleLabel(row.attendee_type),
         row.organization || "",
         row.attendance_status,
         new Date(row.registered_at).toLocaleString(),
@@ -559,7 +601,7 @@ export default function Meetings({
         <tr>
           <td>${i + 1}</td>
           <td><strong>${esc(r.full_name)}</strong></td>
-          <td style="text-transform:capitalize">${esc(r.attendee_type)}</td>
+          <td>${esc(attendeeRoleLabel(r.attendee_type))}</td>
           <td>${esc(r.email)}<br /><small style="color:#64748b">${esc(r.phone)}</small></td>
           <td>${esc(r.organization || "—")}</td>
           <td><span class="status-tag status-${esc(r.attendance_status)}">${esc(r.attendance_status)}</span></td>
@@ -754,11 +796,11 @@ export default function Meetings({
     <section className="meeting-card workspace-bar"><label className="field"><span>Workspace</span><select value={workspaceId} onChange={(e) => changeWorkspace(e.target.value)}>
       {workspaces.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.role}</option>)}</select></label><button className="button button-secondary" onClick={() => void reloadMeetings()}><RefreshCw size={15} /> Refresh</button></section>
     <nav className="meeting-tabs" role="group" aria-label="Meeting workspace sections">
-      {(["overview", "attendees", "records", "invitations", "checkin"] as MeetingSection[]).map((section) => <button key={section} type="button" aria-pressed={meetingSection === section} className={meetingSection === section ? "active" : ""} onClick={() => setMeetingSection(section)}>
+      {(["overview", "attendees", "records", "invitations", "checkin"] as MeetingSection[]).map((section) => <button key={section} type="button" aria-pressed={meetingSection === section} className={meetingSection === section ? "active" : ""} onClick={() => { setMeetingSection(section); if (meeting) navigateMeeting(meeting.id, section); }}>
         {section === "records" ? "Agenda & records" : section === "checkin" ? "Check-in" : section[0].toUpperCase() + section.slice(1)}
       </button>)}
     </nav>
-    {meetingSection === "invitations" && <div className="meeting-settings-panels">
+    {meetingSection === "invitations" && <div className="meeting-settings-panels" id="invitations">
       {meeting && <section className="meeting-card">
         <div className="meeting-section-title"><div><h2>Meeting invitees</h2><p>Add workspace members to this meeting’s attendee list.</p></div></div>
         <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/invitees`, { method: "POST", body: JSON.stringify({ user_id: new FormData(event.currentTarget).get("user_id") }) }), "Meeting invitee added.")}>
@@ -780,7 +822,7 @@ export default function Meetings({
       )}
     </div>}
     <div className="meeting-layout">
-      <aside className="meeting-card meeting-sidebar"><div className="meeting-section-title"><div><h2>Meetings</h2><p>Private workspace events</p></div></div>
+      <aside className="meeting-card meeting-sidebar" id="meeting-list"><div className="meeting-section-title"><div><h2>Meetings</h2><p>Private workspace events</p></div></div>
         <form className="meeting-create" onSubmit={(e) => void createMeeting(e)}>
           <label className="field"><span>Meeting title</span><input required maxLength={200} value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)} placeholder="Quarterly staff conference" /></label>
           <label className="field"><span>Meeting type</span><input required maxLength={80} value={meetingType} onChange={(e) => setMeetingType(e.target.value)} /></label>
@@ -792,7 +834,7 @@ export default function Meetings({
           <button className="button button-primary full-width" disabled={busy || !workspaceId}><Plus size={15} /> Schedule meeting</button>
         </form>
         <label className="field meeting-search"><span>Search meetings</span><input type="search" value={meetingSearch} onChange={(event) => setMeetingSearch(event.target.value)} placeholder="Search by title or type" /></label>
-        <div className="meeting-list">{meetings.filter((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())).map((row) => <button key={row.id} className={`meeting-list-item ${meeting?.id === row.id ? "selected" : ""}`} onClick={() => { setGuestJoinLink(""); setMeetingSection("overview"); void reloadMeeting(row.id).catch((e) => setMessage(e.message)); }}>
+        <div className="meeting-list">{meetings.filter((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())).map((row) => <button key={row.id} className={`meeting-list-item ${meeting?.id === row.id ? "selected" : ""}`} onClick={() => openMeeting(row.id)}>
       <strong>{eventTitles[row.event_id] || row.meeting_type}</strong><span>{row.meeting_type} · {row.status}</span>
         </button>)}{!meetings.length && <p className="meeting-empty">No meeting records yet.</p>}{meetings.length > 0 && !meetings.some((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())) && <p className="meeting-empty">No meetings match your search.</p>}</div>
       </aside>
@@ -822,13 +864,13 @@ export default function Meetings({
             </div>
           </div>}
         </section>}
-        {meetingSection === "checkin" && meeting.status !== "scheduled" && <section className="meeting-card">
+        {meetingSection === "checkin" && meeting.status !== "scheduled" && <section className="meeting-card" id="checkin">
           <div className="meeting-section-title"><div><h2>Meeting check-in</h2><p>QR registration links close when a meeting is held or cancelled.</p></div></div>
           <p className="meeting-empty">This meeting is {meeting.status}. Review its saved attendee registrations and record attendance in the Attendees section.</p>
           <button className="button button-secondary" type="button" onClick={() => setMeetingSection("attendees")}>Review attendees</button>
         </section>}
         {meetingSection === "records" && <>
-        <section className="meeting-card"><div className="meeting-section-title"><div><h2>Agenda</h2><p>Ordered discussion items</p></div></div>
+        <section className="meeting-card" id="records"><div className="meeting-section-title"><div><h2>Agenda</h2><p>Ordered discussion items</p></div></div>
           <form className="meeting-inline-form" onSubmit={(event) => void submit(event, () => api(`${base}/agenda`, { method: "POST", body: JSON.stringify({ title: new FormData(event.currentTarget).get("title"), description: new FormData(event.currentTarget).get("description") || null }) }), "Agenda item added.")}>
             <input name="title" required placeholder="Agenda item" /><input name="description" placeholder="Purpose or notes" /><button className="button button-primary" disabled={busy}>Add</button>
           </form>
@@ -845,11 +887,28 @@ export default function Meetings({
           <div className="meeting-record-list">{attachments.map((file) => <div className="meeting-record" key={file.id}><div><strong>{file.filename}</strong><small>{(file.size_bytes / 1024).toFixed(1)} KB · {file.media_type}</small></div><div className="record-actions"><a className="button button-secondary" href={`${API_BASE}/workspaces/${workspaceId}/meetings/${meeting.id}/attachments/${file.id}/download`} target="_blank" rel="noreferrer">Download</a><button className="meeting-remove" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/attachments/${file.id}`, { method: "DELETE" }), "Attachment deleted.")}>Delete</button></div></div>)}{!attachments.length && <p className="meeting-empty">No meeting files uploaded.</p>}</div>
         </section>
         </>}
-        {meetingSection === "attendees" && <section className="meeting-card"><div className="meeting-section-title"><div><h2>Attendees & attendance</h2><p><Users size={13} /> Member invitees and registered guests</p></div></div>
+        {meetingSection === "attendees" && <section className="meeting-card" id="attendees"><div className="meeting-section-title"><div><h2>Attendees & attendance</h2><p><Users size={13} /> Member invitees and registered attendees</p></div></div>
+          {meeting.status === "scheduled" && <div className="manual-attendee-panel">
+            <h3>Add attendee directly</h3><p>Use this if someone cannot register through the meeting link. No signature or GPS is collected in this organizer flow.</p>
+            <form className="manual-attendee-form" onSubmit={(event) => void submit(event, () => {
+              const values = new FormData(event.currentTarget);
+              return api(`${base}/guest-registrations`, { method: "POST", body: JSON.stringify({
+                full_name: values.get("full_name"), email: values.get("email"), phone: values.get("phone"),
+                attendee_type: values.get("attendee_type"), organization: values.get("organization") || null,
+              }) });
+            }, "Attendee added to the meeting.")}>
+              <label className="field"><span>Full name</span><input name="full_name" required maxLength={200} autoComplete="name" /></label>
+              <label className="field"><span>Email address</span><input name="email" required type="email" autoComplete="email" /></label>
+              <label className="field"><span>Phone number</span><input name="phone" required type="tel" minLength={7} maxLength={24} autoComplete="tel" /></label>
+              <label className="field"><span>Attendee role</span><select name="attendee_type" defaultValue="member_delegate"><option value="speaker">Speaker</option><option value="secretary">Secretary</option><option value="chairperson">Chairperson</option><option value="member_delegate">Member / Delegate</option></select></label>
+              <label className="field"><span>Department or organization (optional)</span><input name="organization" maxLength={200} /></label>
+              <button className="button button-primary" disabled={busy}>Add attendee</button>
+            </form>
+          </div>}
           <div className="meeting-record-list">{invitees.map((person) => <div className="meeting-record" key={person.id}><div><strong>{person.user_id}</strong><small>Attendance · {person.attendance_status}{person.attendance_note ? ` · ${person.attendance_note}` : ""}</small></div>{meeting.status === "held" && <select aria-label="Attendance" value={person.attendance_status === "pending" ? "present" : person.attendance_status} onChange={(e) => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/invitees/${person.id}/attendance`, { method: "POST", body: JSON.stringify({ status: e.target.value }) }), "Attendance saved.")}><option value="present">Present</option><option value="absent">Absent</option><option value="excused">Excused</option></select>}</div>)}{!invitees.length && !guestRegistrations.length && <p className="meeting-empty">No one has joined this meeting yet.</p>}</div>
           <div className="guest-attendees">
             <div className="guest-attendees-heading">
-              <h3>QR registrations ({guestRegistrations.length})</h3>
+              <h3>Attendee registrations ({guestRegistrations.length})</h3>
               <div className="record-actions">
                 {guestRegistrations.length > 0 && (
                   <>
@@ -866,7 +925,8 @@ export default function Meetings({
                 </button>
               </div>
             </div>
-            {guestRegistrations.map((person) => <div className="meeting-record guest-attendee" key={person.id}><div><strong>{person.full_name} <span className="attendee-type-tag">{person.attendee_type}</span></strong><small>{person.email} · {person.phone}{person.organization ? ` · ${person.organization}` : ""}</small><small>Registered {new Date(person.registered_at).toLocaleString()} · {person.attendance_status}</small>
+            {guestRegistrations.map((person) => <div className="meeting-record guest-attendee" key={person.id}><div><strong>{person.full_name} <span className="attendee-type-tag">{attendeeRoleLabel(person.attendee_type)}</span></strong><small>{person.email} · {person.phone}{person.organization ? ` · ${person.organization}` : ""}</small><small>Registered {new Date(person.registered_at).toLocaleString()} · {person.attendance_status}{person.registration_source === "admin" ? " · Added by organizer" : ""}</small>
+              {person.registration_source === "admin" && <small className="manual-attendee-note">Signature and GPS were not collected for this organizer-added attendee.</small>}
               {person.gps_latitude !== null && person.gps_longitude !== null && <small className="guest-location"><MapPin size={12} /> {person.gps_latitude.toFixed(5)}, {person.gps_longitude.toFixed(5)}{person.gps_accuracy_m !== null ? ` · ±${Math.round(person.gps_accuracy_m)} m` : ""}{person.gps_captured_at ? ` · ${new Date(person.gps_captured_at).toLocaleString()}` : ""}</small>}
               {person.signature_present && <div className="guest-signature-access"><button className="meeting-link" type="button" onClick={() => void toggleSignaturePreview(person.id)}>{signaturePreview?.attendeeId === person.id ? "Hide signature" : "View signature"}</button>{signaturePreview?.attendeeId === person.id && <img src={signaturePreview.url} alt={`Digital signature provided by ${person.full_name}`} />}</div>}
               {(person.signature_present || person.gps_latitude !== null) && <button className="meeting-remove" type="button" disabled={busy} onClick={() => eraseAttendeePrivacyData(person.id)}>Delete signature & location data</button>}

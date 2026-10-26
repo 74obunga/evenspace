@@ -742,6 +742,7 @@ def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(cl
     organizer_attendee = organizer_rows.json()[0]
     assert organizer_attendee["signature_present"] is True
     assert organizer_attendee["gps_latitude"] == -1.2864
+    assert organizer_attendee["registration_source"] == "qr"
     assert "signature_png" not in organizer_attendee
     signature_response = test_client.get(
         f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/signature",
@@ -755,6 +756,21 @@ def test_public_meeting_guest_registration_normalizes_email_and_is_idempotent(cl
             f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations/{organizer_attendee['id']}/signature",
         )
     assert unauthorized_signature.status_code == 401
+
+    manual_url = f"/api/v1/workspaces/{workspace_id}/meetings/{meeting_id}/guest-registrations"
+    manual_attendee = {
+        "full_name": "Jordan Speaker", "email": "jordan.speaker@example.com", "phone": "+254700111222",
+        "attendee_type": "speaker", "organization": "Example Association",
+    }
+    assert test_client.post(manual_url, json=manual_attendee).status_code == 403
+    manual_result = test_client.post(manual_url, json=manual_attendee, headers=headers)
+    assert manual_result.status_code == 201, manual_result.text
+    assert manual_result.json()["attendee_type"] == "speaker"
+    assert manual_result.json()["registration_source"] == "admin"
+    assert manual_result.json()["registered_by_id"] is not None
+    assert manual_result.json()["signature_present"] is False
+    assert manual_result.json()["gps_latitude"] is None
+    assert test_client.post(manual_url, json=manual_attendee, headers=headers).status_code == 409
 
     missing_signature = {key: value for key, value in registration.items() if key != "signature_data"}
     missing_signature["email"] = "without-signature@example.com"

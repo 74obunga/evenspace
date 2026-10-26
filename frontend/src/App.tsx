@@ -15,6 +15,8 @@ import PasswordReset from "./PasswordReset";
 import EmailVerification from "./EmailVerification";
 import InvitationAccept from "./InvitationAccept";
 import OrganizerDashboard from "./OrganizerDashboard";
+import ApplicationShell, { type AppModule } from "./ApplicationShell";
+import Settings from "./Settings";
 import { API_BASE } from "./apiBase";
 
 const CREDENTIAL_PATTERN = /^[0-9a-f]{64}$/;
@@ -30,7 +32,12 @@ function formatTime(value: string): string {
 }
 
 function App() {
-  const [view, setView] = useState<"scanner" | "meetings" | "events" | "participant">("meetings");
+  const moduleForPath = (path: string): AppModule => path.startsWith("/events") ? "events"
+    : path.startsWith("/meetings") ? "meetings"
+      : path.startsWith("/my-tickets") ? "participant"
+        : path.startsWith("/settings") ? "settings"
+          : path.startsWith("/gate-scanner") ? "scanner" : "meetings";
+  const [view, setView] = useState<AppModule>(() => moduleForPath(window.location.pathname));
   const [sessions, setSessions] = useState<CachedSession[]>([]);
   const [session, setSession] = useState<CachedSession | null>(null);
   const [eventId, setEventId] = useState("");
@@ -43,6 +50,25 @@ function App() {
   const [notice, setNotice] = useState<{ tone: "success" | "warning" | "error" | "info"; text: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
+
+  const navigate = useCallback((path: string) => {
+    if (`${window.location.pathname}${window.location.hash}` !== path) window.history.pushState({}, "", path);
+    setView(moduleForPath(path));
+    window.dispatchEvent(new CustomEvent("evenspace:navigate", { detail: path }));
+  }, []);
+
+  useEffect(() => {
+    const onHistoryChange = () => {
+      setView(moduleForPath(window.location.pathname));
+      window.dispatchEvent(new CustomEvent("evenspace:navigate", { detail: `${window.location.pathname}${window.location.hash}` }));
+    };
+    window.addEventListener("popstate", onHistoryChange);
+    return () => window.removeEventListener("popstate", onHistoryChange);
+  }, []);
+
+  useEffect(() => {
+    if (window.location.pathname === "/" && !window.location.hash) window.history.replaceState({}, "", "/meetings");
+  }, []);
 
   const reloadLocal = useCallback(async (id: string) => {
     const [stored, storedScans] = await Promise.all([getSession(id), getScans(id)]);
@@ -111,14 +137,15 @@ function App() {
   const meetingJoin = window.location.hash.match(/^#join-meeting\/([0-9a-f-]{36})\/([A-Za-z0-9_-]{32,})$/i);
   if (meetingJoin) return <MeetingJoin meetingId={meetingJoin[1]} token={meetingJoin[2]} />;
   const passwordReset = window.location.hash.match(/^#reset-password\/([A-Za-z0-9_-]{32,})$/);
-  if (passwordReset) return <PasswordReset token={passwordReset[1]} onDone={() => { window.location.hash = ""; setView("meetings"); }} />;
+  if (passwordReset) return <PasswordReset token={passwordReset[1]} onDone={() => { window.location.hash = ""; navigate("/meetings"); }} />;
   const emailVerification = window.location.hash.match(/^#verify-email\/([A-Za-z0-9_-]{32,})$/);
-  if (emailVerification) return <EmailVerification token={emailVerification[1]} onDone={() => { window.location.hash = ""; setView("meetings"); }} />;
+  if (emailVerification) return <EmailVerification token={emailVerification[1]} onDone={() => { window.location.hash = ""; navigate("/meetings"); }} />;
   const invitation = window.location.hash.match(/^#accept-invitation\/([A-Za-z0-9_-]{32,})$/);
-  if (invitation) return <InvitationAccept token={invitation[1]} onDone={() => { window.location.hash = ""; setView("meetings"); }} />;
-  if (view === "events") return <OrganizerDashboard onMeetings={() => setView("meetings")} onGate={() => setView("scanner")} onParticipant={() => setView("participant")} onOpenScanner={(id, token) => { setEventId(id); setDeviceToken(token); setView("scanner"); }} />;
-  if (view === "meetings") return <Meetings onGate={() => setView("scanner")} onEvents={() => setView("events")} onParticipant={() => setView("participant")} />;
-  if (view === "participant") return <Participant onGate={() => setView("scanner")} onEvents={() => setView("events")} onMeetings={() => setView("meetings")} />;
+  if (invitation) return <InvitationAccept token={invitation[1]} onDone={() => { window.location.hash = ""; navigate("/meetings"); }} />;
+  if (view === "events") return <ApplicationShell module="events" navigate={navigate}><OrganizerDashboard onMeetings={() => navigate("/meetings")} onGate={() => navigate("/gate-scanner")} onParticipant={() => navigate("/my-tickets")} onOpenScanner={(id, token) => { setEventId(id); setDeviceToken(token); navigate("/gate-scanner"); }} /></ApplicationShell>;
+  if (view === "meetings") return <ApplicationShell module="meetings" navigate={navigate}><Meetings onGate={() => navigate("/gate-scanner")} onEvents={() => navigate("/events")} onParticipant={() => navigate("/my-tickets")} /></ApplicationShell>;
+  if (view === "participant") return <ApplicationShell module="participant" navigate={navigate}><Participant onGate={() => navigate("/gate-scanner")} onEvents={() => navigate("/events")} onMeetings={() => navigate("/meetings")} /></ApplicationShell>;
+  if (view === "settings") return <ApplicationShell module="settings" navigate={navigate}><Settings /></ApplicationShell>;
 
   async function connectToEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -293,16 +320,16 @@ function App() {
   }
 
   return (
-    <main className="shell">
+    <ApplicationShell module="scanner" navigate={navigate}><main className="shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="EvenSpace home">
           <span className="brand-mark"><span /></span>
           <span>evenspace</span>
         </a>
         <div className="topbar-actions">
-          <button className="view-switch" type="button" onClick={() => setView("events")}>Events</button>
-          <button className="view-switch" type="button" onClick={() => setView("meetings")}>Meetings</button>
-          <button className="view-switch" type="button" onClick={() => setView("participant")}>My tickets</button>
+          <button className="view-switch" type="button" onClick={() => navigate("/events")}>Events</button>
+          <button className="view-switch" type="button" onClick={() => navigate("/meetings")}>Meetings</button>
+          <button className="view-switch" type="button" onClick={() => navigate("/my-tickets")}>My tickets</button>
           <span className="current-nav-pill" aria-current="page">Gate scanner</span>
           <div className={`connection ${online ? "is-online" : "is-offline"}`} role="status">
             {online ? <Wifi size={15} /> : <CloudOff size={15} />}
@@ -315,6 +342,7 @@ function App() {
         <div className="eyebrow"><span className="eyebrow-dot" /> GATE OPERATIONS</div>
         <h1>Check in, <span>anywhere.</span></h1>
         <p>Scan tickets at the gate. Your scans stay on this device until they’re safely synced.</p>
+        <div className={`connection scanner-connection ${online ? "is-online" : "is-offline"}`} role="status">{online ? <Wifi size={15} /> : <CloudOff size={15} />}<span>{online ? "Online" : "Offline mode"}</span></div>
       </section>
 
       {notice && <div className={`notice notice-${notice.tone}`} role={notice.tone === "error" ? "alert" : "status"}>
@@ -324,7 +352,7 @@ function App() {
       </div>}
 
       {!session ? (
-        <section className="connect-card card">
+        <section className="connect-card card" id="connect-scanner">
           <div className="section-heading">
             <div className="heading-icon"><Smartphone size={20} /></div>
             <div><h2>Connect a scanner</h2><p>Download an event’s ticket list for this device.</p></div>
@@ -370,7 +398,7 @@ function App() {
             <div className="stat-card"><span>Review</span><strong>{conflictCount}</strong><small>organizer follow-up</small></div>
           </section>
 
-          <section className="scanner-card card">
+          <section className="scanner-card card" id="scan-ticket">
             <div className="section-heading">
               <div className="heading-icon scan-icon"><QrCode size={20} /></div>
               <div><h2>Scan a ticket</h2><p>Camera access requires a secure connection or localhost.</p></div>
@@ -402,7 +430,7 @@ function App() {
             </button>
           </section>
 
-          <section className="scan-history">
+          <section className="scan-history" id="scan-history">
             <div className="history-heading"><div><h2>Recent scans</h2><p>Most recent scans on this device</p></div>
               <span className="history-count">{scans.length}</span></div>
             {scans.length === 0 ? <div className="empty-state"><QrCode size={23} /><p>No scans yet. Scan a ticket to get started.</p></div> :
@@ -411,7 +439,7 @@ function App() {
         </>
       )}
       <footer className="footer"><span>EVENSPACE</span><span>Offline-ready gate check-in</span></footer>
-    </main>
+    </main></ApplicationShell>
   );
 }
 

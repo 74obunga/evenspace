@@ -300,7 +300,7 @@ export default function OrganizerDashboard({
     </section>
 
     <div className="organizer-grid">
-      <section className="meeting-card organizer-event-list">
+      <section className="meeting-card organizer-event-list" id="event-list">
         <div className="meeting-section-title"><div><h2>Events</h2><p>Choose an event to manage</p></div></div>
         {events.map((row) => (
           <button className={`meeting-list-item ${selectedId === row.id ? "selected" : ""}`} type="button" key={row.id} onClick={() => setSelectedId(row.id)}>
@@ -370,7 +370,7 @@ export default function OrganizerDashboard({
         </section>}
 
         {selected && canManage && (
-          <section className="meeting-card organizer-scanners">
+          <section className="meeting-card organizer-scanners" id="event-scanners">
             <div className="meeting-section-title">
               <div>
                 <h2>Gate scanners & offline access</h2>
@@ -503,7 +503,7 @@ export default function OrganizerDashboard({
         )}
 
         {selected && canManage && (
-          <section className="meeting-card">
+          <section className="meeting-card" id="event-registrations">
             <div className="meeting-section-title">
               <div>
                 <h2>Registrations & attendance</h2>

@@ -259,6 +259,7 @@ def register_meeting_guest(db: Session, meeting_id: UUID, data: dict):
     signature_png = base64.b64decode(signature_data.split(",", 1)[1], validate=True)
     guest_data = {key: value for key, value in data.items() if key not in {"email", "token"}}
     guest_data["signature_png"] = signature_png
+    guest_data["registration_source"] = "qr"
     guest = MeetingGuestRegistration(meeting_id=meeting.id, email=email, **guest_data)
     db.add(guest)
     try:
@@ -274,6 +275,34 @@ def register_meeting_guest(db: Session, meeting_id: UUID, data: dict):
         return guest, False, join_url
     db.refresh(guest)
     return guest, True, join_url
+
+
+def add_manual_meeting_guest(db: Session, workspace_id: UUID, meeting_id: UUID, actor_id: UUID, data: dict):
+    meeting = _meeting(db, workspace_id, meeting_id, lock=True)
+    if meeting.status != "scheduled":
+        raise MeetingConflict("Organizer-added attendees can only be added while the meeting is scheduled")
+    email = str(data.pop("email")).strip().casefold()
+    invitee = db.scalar(select(MeetingInvitee.id).join(User, User.id == MeetingInvitee.user_id).where(
+        MeetingInvitee.meeting_id == meeting.id, func.lower(User.email) == email,
+    ))
+    if invitee is not None:
+        raise MeetingConflict("This email is already on the meeting invite list")
+    existing = db.scalar(select(MeetingGuestRegistration.id).where(
+        MeetingGuestRegistration.meeting_id == meeting.id, MeetingGuestRegistration.email == email,
+    ))
+    if existing is not None:
+        raise MeetingConflict("This email is already registered for the meeting")
+    guest = MeetingGuestRegistration(
+        meeting_id=meeting.id, email=email, registration_source="admin", registered_by_id=actor_id, **data,
+    )
+    db.add(guest)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise MeetingConflict("This email is already registered for the meeting") from None
+    db.refresh(guest)
+    return guest
 
 
 def list_guest_registrations(db: Session, workspace_id: UUID, meeting_id: UUID):

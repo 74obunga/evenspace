@@ -242,39 +242,16 @@ def decode_signature_png(value: str) -> bytes:
     return raw
 
 
-class MeetingGuestRegistrationCreate(BaseModel):
+MeetingAttendeeRole = Literal["speaker", "secretary", "chairperson", "member_delegate", "staff", "guest"]
+NewMeetingAttendeeRole = Literal["speaker", "secretary", "chairperson", "member_delegate"]
+
+
+class MeetingGuestDetails(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     email: EmailStr
     phone: str = Field(min_length=7, max_length=24)
-    attendee_type: Literal["staff", "guest"]
+    attendee_type: MeetingAttendeeRole
     organization: str | None = Field(default=None, max_length=200)
-    token: str = Field(min_length=32, max_length=100)
-    signature_data: str = Field(min_length=30, max_length=131072)
-    gps_latitude: float | None = Field(default=None, ge=-90, le=90)
-    gps_longitude: float | None = Field(default=None, ge=-180, le=180)
-    gps_accuracy_m: float | None = Field(default=None, ge=0, le=100000)
-    gps_captured_at: datetime | None = None
-
-    @field_validator("signature_data")
-    @classmethod
-    def valid_signature(cls, value: str) -> str:
-        decode_signature_png(value)
-        return value
-
-    @field_validator("gps_captured_at")
-    @classmethod
-    def aware_gps_timestamp(cls, value: datetime | None) -> datetime | None:
-        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
-            raise ValueError("GPS capture timestamp must include a timezone")
-        return value
-
-    @model_validator(mode="after")
-    def complete_gps_coordinates(self):
-        if (self.gps_latitude is None) != (self.gps_longitude is None):
-            raise ValueError("GPS latitude and longitude must be provided together")
-        if self.gps_latitude is None and (self.gps_accuracy_m is not None or self.gps_captured_at is not None):
-            raise ValueError("GPS accuracy and timestamp require coordinates")
-        return self
 
     @field_validator("full_name")
     @classmethod
@@ -303,6 +280,40 @@ class MeetingGuestRegistrationCreate(BaseModel):
         return value.strip() or None if value is not None else None
 
 
+class MeetingGuestRegistrationCreate(MeetingGuestDetails):
+    token: str = Field(min_length=32, max_length=100)
+    signature_data: str = Field(min_length=30, max_length=131072)
+    gps_latitude: float | None = Field(default=None, ge=-90, le=90)
+    gps_longitude: float | None = Field(default=None, ge=-180, le=180)
+    gps_accuracy_m: float | None = Field(default=None, ge=0, le=100000)
+    gps_captured_at: datetime | None = None
+
+    @field_validator("signature_data")
+    @classmethod
+    def valid_signature(cls, value: str) -> str:
+        decode_signature_png(value)
+        return value
+
+    @field_validator("gps_captured_at")
+    @classmethod
+    def aware_gps_timestamp(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("GPS capture timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def complete_gps_coordinates(self):
+        if (self.gps_latitude is None) != (self.gps_longitude is None):
+            raise ValueError("GPS latitude and longitude must be provided together")
+        if self.gps_latitude is None and (self.gps_accuracy_m is not None or self.gps_captured_at is not None):
+            raise ValueError("GPS accuracy and timestamp require coordinates")
+        return self
+
+
+class MeetingGuestManualCreate(MeetingGuestDetails):
+    attendee_type: NewMeetingAttendeeRole
+
+
 class MeetingGuestRegistrationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -318,6 +329,8 @@ class MeetingGuestRegistrationResponse(BaseModel):
     gps_longitude: float | None = None
     gps_accuracy_m: float | None = None
     gps_captured_at: datetime | None = None
+    registration_source: Literal["qr", "admin"] = "qr"
+    registered_by_id: UUID | None = None
     attendance_status: str
     attendance_note: str | None = None
     recorded_by_id: UUID | None = None

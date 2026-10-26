@@ -80,7 +80,8 @@ class MeetingGuestRegistration(Base):
     __tablename__ = "meeting_guest_registrations"
     __table_args__ = (
         UniqueConstraint("meeting_id", "email", name="uq_meeting_guest_email"),
-        CheckConstraint("attendee_type IN ('staff','guest')", name="ck_meeting_guest_type"),
+        CheckConstraint("attendee_type IN ('staff','guest','speaker','secretary','chairperson','member_delegate')", name="ck_meeting_guest_type"),
+        CheckConstraint("registration_source IN ('qr','admin')", name="ck_meeting_guest_registration_source"),
         CheckConstraint("attendance_status IN ('registered','present','absent','excused')", name="ck_meeting_guest_attendance"),
         CheckConstraint("(gps_latitude IS NULL AND gps_longitude IS NULL) OR (gps_latitude IS NOT NULL AND gps_longitude IS NOT NULL)", name="ck_meeting_guest_gps_pair"),
         CheckConstraint("gps_latitude IS NULL OR gps_latitude BETWEEN -90 AND 90", name="ck_meeting_guest_gps_latitude"),
@@ -102,6 +103,8 @@ class MeetingGuestRegistration(Base):
     gps_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     gps_accuracy_m: Mapped[float | None] = mapped_column(Float, nullable=True)
     gps_captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    registration_source: Mapped[str] = mapped_column(String(8), default="qr", server_default="qr")
+    registered_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     attendance_status: Mapped[str] = mapped_column(String(16), default="registered", server_default="registered")
     attendance_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     recorded_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)

@@ -74,7 +74,7 @@ export default function MeetingJoin({ meetingId, token }: { meetingId: string; t
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [attendeeType, setAttendeeType] = useState<"staff" | "guest">("staff");
+  const [attendeeType, setAttendeeType] = useState<"speaker" | "secretary" | "chairperson" | "member_delegate">("member_delegate");
   const [organization, setOrganization] = useState("");
   const [signature, setSignature] = useState("");
   const [location, setLocation] = useState<CapturedLocation | null>(null);
@@ -155,11 +155,10 @@ export default function MeetingJoin({ meetingId, token }: { meetingId: string; t
               <label className="field"><span>Email address</span><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label className="field"><span>Phone number</span><input required type="tel" minLength={7} maxLength={24} autoComplete="tel" placeholder="+254 7XX XXX XXX" value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
             </div>
-            <fieldset className="attendee-kind"><legend>I am joining as</legend>
-              <label className={attendeeType === "staff" ? "selected" : ""}><input type="radio" name="attendee-type" value="staff" checked={attendeeType === "staff"} onChange={() => setAttendeeType("staff")} /><span>Staff member</span></label>
-              <label className={attendeeType === "guest" ? "selected" : ""}><input type="radio" name="attendee-type" value="guest" checked={attendeeType === "guest"} onChange={() => setAttendeeType("guest")} /><span>Guest</span></label>
-            </fieldset>
-            <label className="field"><span>{attendeeType === "staff" ? "Department or organization" : "Organization (optional)"}</span><input maxLength={200} value={organization} onChange={(event) => setOrganization(event.target.value)} /></label>
+            <label className="field"><span>Attendee role</span><select value={attendeeType} onChange={(event) => setAttendeeType(event.target.value as typeof attendeeType)}>
+              <option value="speaker">Speaker</option><option value="secretary">Secretary</option><option value="chairperson">Chairperson</option><option value="member_delegate">Member / Delegate</option>
+            </select></label>
+            <label className="field"><span>Department or organization (optional)</span><input maxLength={200} value={organization} onChange={(event) => setOrganization(event.target.value)} /></label>
             <section className="registration-consent-section" aria-labelledby="location-title">
               <div className="registration-section-heading"><MapPin size={17} /><div><h2 id="location-title">Location (optional)</h2><p>Share your location with meeting organizers if you choose.</p></div></div>
               <p className="field-help">It may help organizers understand where registrations were submitted. It is not proof of identity or attendance.</p>

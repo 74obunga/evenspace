@@ -173,7 +173,7 @@ export default function Participant({
       {messageTone === "success" ? <CheckCircle2 size={18} /> : <ShieldCheck size={18} />}<span>{message}</span>
     </div>}
 
-    {ticket ? <section className="participant-ticket card" aria-label="Your ticket">
+    {ticket ? <section className="participant-ticket card" id="ticket-details" aria-label="Your ticket">
       <div className="participant-ticket-heading">
         <span className="event-label"><Ticket size={15} /> {ticket.status.toUpperCase()} TICKET</span>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -195,7 +195,7 @@ export default function Participant({
       </div>
       <button className="text-button ticket-reset no-print" type="button" onClick={() => { setTicket(null); setMessage(""); }}>Back to event and ticket lookup</button>
     </section> : <div className="participant-grid">
-      <section className="participant-card card">
+      <section className="participant-card card" id="browse-events">
         <div className="section-heading"><div className="heading-icon"><Search size={19} /></div><div><h2>Find an event</h2><p>Browse upcoming public events.</p></div></div>
         <label className="field"><span>Search events</span><input type="search" value={eventSearch} onChange={(event) => setEventSearch(event.target.value)} placeholder="Search by title or category" /></label>
         <div className="discovery-event-list" aria-live="polite">

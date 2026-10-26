@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -98,6 +99,32 @@ def test_registration_csrf_protection_workspace_creation_and_logout(client):
     logged_out = test_client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": csrf})
     assert logged_out.status_code == 204
     assert test_client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_separate_new_accounts_own_separate_workspaces(client):
+    test_client, engine = client
+    workspaces = []
+    users = []
+    for email, workspace_name in (("one@example.com", "One Workspace"), ("two@example.com", "Two Workspace")):
+        response = test_client.post("/api/v1/auth/register", json={
+            "email": email,
+            "password": "correct horse battery staple",
+            "workspace_name": workspace_name,
+        })
+        assert response.status_code == 201, response.text
+        workspaces.append(response.json()["workspace"])
+        users.append(response.json()["user"]["id"])
+
+    assert workspaces[0]["id"] != workspaces[1]["id"]
+    assert all(workspace["role"] == "owner" for workspace in workspaces)
+    with Session(engine) as session:
+        for user_id, workspace in zip(users, workspaces, strict=True):
+            membership = session.scalar(select(WorkspaceMembership).where(
+                WorkspaceMembership.user_id == UUID(user_id),
+                WorkspaceMembership.workspace_id == UUID(workspace["id"]),
+            ))
+            assert membership is not None
+            assert membership.role == WorkspaceRole.OWNER
 
 
 def test_login_is_throttled_after_five_failures(client):

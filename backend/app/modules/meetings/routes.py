@@ -11,7 +11,7 @@ from app.modules.meetings.schemas import (
     ActionHistoryResponse, ActionItemCreate, ActionItemResponse, ActionStatusChange,
     AgendaItemCreate, AgendaItemResponse, AttachmentResponse, AttendanceChange, DecisionCreate, DecisionResolve, DecisionResponse,
     InviteeCreate, InviteeResponse,
-    MeetingCreate, MeetingScheduleCreate, MeetingGuestAttendanceChange, MeetingGuestRegistrationCreate,
+    MeetingCreate, MeetingScheduleCreate, MeetingGuestAttendanceChange, MeetingGuestManualCreate, MeetingGuestRegistrationCreate,
     MeetingGuestJoinResponse, MeetingGuestRegistrationResponse, MeetingJoinInfo, MeetingJoinLinkResponse, MeetingJoinTokenRequest,
     MeetingResponse, MeetingStatusChange, MinutesCreate, MinutesDecision, MinutesResponse,
 )
@@ -90,6 +90,14 @@ def get_guest_registrations(workspace_id: UUID, meeting_id: UUID,
                             _manager: AuthContext = Depends(require_workspace_manager),
                             db: Session = Depends(get_db)):
     return _call(service.list_guest_registrations, db, workspace_id, meeting_id)
+
+
+@router.post("/{meeting_id}/guest-registrations", response_model=MeetingGuestRegistrationResponse, status_code=201)
+def post_manual_guest_registration(workspace_id: UUID, meeting_id: UUID, payload: MeetingGuestManualCreate,
+                                   context: AuthContext = Depends(require_workspace_manager),
+                                   _csrf: AuthContext = Depends(require_csrf), db: Session = Depends(get_db)):
+    return _call(service.add_manual_meeting_guest, db, workspace_id, meeting_id, context.user.id,
+                 payload.model_dump())
 
 
 @router.get("/{meeting_id}/guest-registrations/{guest_id}/signature")
