@@ -125,24 +125,40 @@ export default function Meetings({
     const loadVersion = ++meetingLoadVersion.current;
     const root = `/workspaces/${workspaceId}/meetings/${id}`;
     const record = await api<Meeting>(root);
-    const guestRowsRequest = api<GuestRegistration[]>(`${root}/guest-registrations`).catch((error) => {
-      if (activeWorkspaceId.current === requestedWorkspaceId && meetingLoadVersion.current === loadVersion) {
-        const reason = error instanceof Error ? error.message : "request failed";
-        setMessage(`Meeting loaded, but attendee registrations could not be fetched: ${reason}`);
+    if (activeWorkspaceId.current !== requestedWorkspaceId || meetingLoadVersion.current !== loadVersion) return;
+    setMeeting(record);
+
+    const failures: string[] = [];
+    const loadSection = async <T,>(label: string, request: Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await request;
+      } catch (error) {
+        failures.push(label);
+        return fallback;
       }
-      return [];
-    });
+    };
     const [agendaRows, minuteRows, decisionRows, actionRows, inviteeRows, attachmentRows, guestRows, eventRow] = await Promise.all([
-      api<Agenda[]>(`${root}/agenda`), api<Minutes[]>(`${root}/minutes`),
-      api<Decision[]>(`${root}/decisions`), api<ActionItem[]>(`${root}/action-items`), api<Invitee[]>(`${root}/invitees`),
-      api<Attachment[]>(`${root}/attachments`), guestRowsRequest,
-      api<EventDetails>(`/workspaces/${workspaceId}/events/${record.event_id}`),
+      loadSection("agenda", api<Agenda[]>(`${root}/agenda`), []),
+      loadSection("minutes", api<Minutes[]>(`${root}/minutes`), []),
+      loadSection("decisions", api<Decision[]>(`${root}/decisions`), []),
+      loadSection("action items", api<ActionItem[]>(`${root}/action-items`), []),
+      loadSection("invitees", api<Invitee[]>(`${root}/invitees`), []),
+      loadSection("attachments", api<Attachment[]>(`${root}/attachments`), []),
+      loadSection("attendee registrations", api<GuestRegistration[]>(`${root}/guest-registrations`), []),
+      loadSection("event details", api<EventDetails>(`/workspaces/${workspaceId}/events/${record.event_id}`), null),
     ]);
     if (activeWorkspaceId.current !== requestedWorkspaceId || meetingLoadVersion.current !== loadVersion) return;
-    setMeeting(record); setAgenda(agendaRows); setMinutes(minuteRows);
+    setAgenda(agendaRows); setMinutes(minuteRows);
     setEventDetails(eventRow);
     setDecisions(decisionRows); setActions(actionRows); setInvitees(inviteeRows); setAttachments(attachmentRows); setGuestRegistrations(guestRows);
-    await reloadMeetings();
+    if (failures.length) setMessage(`Meeting loaded. Could not load: ${failures.join(", ")}.`);
+    try {
+      await reloadMeetings();
+    } catch {
+      if (activeWorkspaceId.current === requestedWorkspaceId && meetingLoadVersion.current === loadVersion && !failures.length) {
+        setMessage("Meeting loaded, but the meeting list could not be refreshed.");
+      }
+    }
   }, [workspaceId, reloadMeetings]);
 
   useEffect(() => { activeWorkspaceId.current = workspaceId; }, [workspaceId]);
