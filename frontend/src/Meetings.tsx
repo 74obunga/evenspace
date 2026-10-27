@@ -125,10 +125,17 @@ export default function Meetings({
     const loadVersion = ++meetingLoadVersion.current;
     const root = `/workspaces/${workspaceId}/meetings/${id}`;
     const record = await api<Meeting>(root);
+    const guestRowsRequest = api<GuestRegistration[]>(`${root}/guest-registrations`).catch((error) => {
+      if (activeWorkspaceId.current === requestedWorkspaceId && meetingLoadVersion.current === loadVersion) {
+        const reason = error instanceof Error ? error.message : "request failed";
+        setMessage(`Meeting loaded, but attendee registrations could not be fetched: ${reason}`);
+      }
+      return [];
+    });
     const [agendaRows, minuteRows, decisionRows, actionRows, inviteeRows, attachmentRows, guestRows, eventRow] = await Promise.all([
       api<Agenda[]>(`${root}/agenda`), api<Minutes[]>(`${root}/minutes`),
       api<Decision[]>(`${root}/decisions`), api<ActionItem[]>(`${root}/action-items`), api<Invitee[]>(`${root}/invitees`),
-      api<Attachment[]>(`${root}/attachments`), api<GuestRegistration[]>(`${root}/guest-registrations`),
+      api<Attachment[]>(`${root}/attachments`), guestRowsRequest,
       api<EventDetails>(`/workspaces/${workspaceId}/events/${record.event_id}`),
     ]);
     if (activeWorkspaceId.current !== requestedWorkspaceId || meetingLoadVersion.current !== loadVersion) return;
