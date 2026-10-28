@@ -272,7 +272,7 @@ export default function Meetings({
     setBusy(true); setMessage("");
     try {
       const result = await api<{ meeting_id: string; token: string }>(`/workspaces/${workspaceId}/meetings/${meeting.id}/join-link`, { method: "POST", body: "{}" });
-      const link = `${window.location.origin}${window.location.pathname}#join-meeting/${result.meeting_id}/${result.token}`;
+      const link = `${window.location.origin}/#join-meeting/${result.meeting_id}/${result.token}`;
       setGuestJoinLink(link);
       setMessage("Guest registration QR is ready. Generating a replacement QR revokes the previous one.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not generate a meeting link."); }
