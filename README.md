@@ -45,7 +45,7 @@ Create an event under `/api/v1/workspaces/{workspace_id}/events`, add at least o
 
 Organizers can create a scanner at `/api/v1/workspaces/{workspace_id}/events/{event_id}/scan-devices`; its token is returned once. In the scanner app, enter the event ID and token while online to cache the authorized list, then use camera QR scanning or manual code entry. Ticket codes and pending batches are kept in IndexedDB until the server acknowledges sync; the exact batch is retried if a response is lost. Pending scan conflicts can be reviewed at `/api/v1/workspaces/{workspace_id}/events/{event_id}/attendance/conflicts` and resolved through the matching `/resolve` endpoint. Device data is stored in the browser profile, so only use trusted scanner devices and remove event data after reconciliation. Apply database changes with `docker compose exec api alembic upgrade head`.
 
-For backend tests, create a virtual environment, install `backend/requirements-dev.txt`, then run `python -m pytest backend/tests` from the repository root with `PYTHONPATH=backend`.
+For the production database, run `python apply_prod_migrations.py` from `backend/` with `EVENSPACE_PROD_DATABASE_URL` set. It applies pending migrations and verifies that required attendee columns, including `signature_png`, exist before succeeding. Run `python check_prod_schema.py` from `backend/` to check the production schema without applying migrations. For backend tests, create a virtual environment, install `backend/requirements-dev.txt`, then run `python -m pytest backend/tests` from the repository root with `PYTHONPATH=backend`.
 
 ## Implementation sequence
 
