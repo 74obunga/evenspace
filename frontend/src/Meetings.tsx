@@ -635,11 +635,13 @@ export default function Meetings({
     .attendee-signature { display: block; width: 120px; height: 48px; object-fit: contain; }
     .sign-section { margin-top:32px; display:grid; grid-template-columns:1fr 1fr; gap:40px; font-size:.85rem; color:#334155; page-break-inside:avoid; }
     .sign-box { border-top:1px solid #94a3b8; padding-top:8px; }
-    .sign-fields { display:grid; grid-template-columns:1fr 1fr 110px; gap:12px; margin-top:12px; }
-    .sign-field-label { display:block; color:#64748b; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
-    .sign-value { min-height:24px; border-bottom:1px solid #94a3b8; padding:2px 0; }
-    .sign-signature { height:50px; border-bottom:1px solid #94a3b8; display:flex; align-items:center; color:#64748b; font-size:.75rem; }
-    .sign-signature img { max-width:100%; max-height:46px; object-fit:contain; }
+    .sign-fields { display:grid; grid-template-columns:1fr 1.25fr .9fr; gap:10px; margin-top:12px; }
+    .sign-field { min-width:0; display:flex; align-items:center; gap:5px; }
+    .sign-field-label { flex:none; color:#64748b; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+    .sign-value, .sign-signature { min-width:0; flex:1; height:36px; border-bottom:1px solid #94a3b8; padding:2px 0; display:flex; align-items:center; overflow:hidden; }
+    .sign-value { white-space:nowrap; text-overflow:ellipsis; }
+    .sign-signature { color:#64748b; font-size:.68rem; white-space:nowrap; }
+    .sign-signature img { max-width:100%; max-height:34px; object-fit:contain; }
   </style>
 </head>
 <body>
@@ -694,11 +696,11 @@ export default function Meetings({
   <div class="sign-section">
     <div class="sign-box">
       <strong>Meeting Secretary / Recorder:</strong>
-      <div class="sign-fields"><div><span class="sign-field-label">Name</span><div class="sign-value">${secretary ? esc(secretary.full_name) : "Not registered"}</div></div><div><span class="sign-field-label">Signature</span>${secretary && signatureData.has(secretary.id) ? `<div class="sign-signature"><img src="${signatureData.get(secretary.id)}" alt="Signature for ${esc(secretary.full_name)}" /></div>` : `<div class="sign-signature">${secretary ? "Signature not provided" : "Not registered"}</div>`}</div><div><span class="sign-field-label">Date</span><div class="sign-value">${secretary ? esc(new Date(secretary.registered_at).toLocaleDateString()) : "—"}</div></div></div>
+      <div class="sign-fields"><div class="sign-field"><span class="sign-field-label">Name</span><div class="sign-value">${secretary ? esc(secretary.full_name) : "Not registered"}</div></div><div class="sign-field"><span class="sign-field-label">Signature</span>${secretary && signatureData.has(secretary.id) ? `<div class="sign-signature"><img src="${signatureData.get(secretary.id)}" alt="Signature for ${esc(secretary.full_name)}" /></div>` : `<div class="sign-signature">${secretary ? "Signature not provided" : "Not registered"}</div>`}</div><div class="sign-field"><span class="sign-field-label">Date</span><div class="sign-value">${secretary ? esc(new Date(secretary.registered_at).toLocaleDateString()) : "—"}</div></div></div>
     </div>
     <div class="sign-box">
       <strong>Chairperson / Presiding Officer:</strong>
-      <div class="sign-fields"><div><span class="sign-field-label">Name</span><div class="sign-value">${chairperson ? esc(chairperson.full_name) : "Not registered"}</div></div><div><span class="sign-field-label">Signature</span>${chairperson && signatureData.has(chairperson.id) ? `<div class="sign-signature"><img src="${signatureData.get(chairperson.id)}" alt="Signature for ${esc(chairperson.full_name)}" /></div>` : `<div class="sign-signature">${chairperson ? "Signature not provided" : "Not registered"}</div>`}</div><div><span class="sign-field-label">Date</span><div class="sign-value">${chairperson ? esc(new Date(chairperson.registered_at).toLocaleDateString()) : "—"}</div></div></div>
+      <div class="sign-fields"><div class="sign-field"><span class="sign-field-label">Name</span><div class="sign-value">${chairperson ? esc(chairperson.full_name) : "Not registered"}</div></div><div class="sign-field"><span class="sign-field-label">Signature</span>${chairperson && signatureData.has(chairperson.id) ? `<div class="sign-signature"><img src="${signatureData.get(chairperson.id)}" alt="Signature for ${esc(chairperson.full_name)}" /></div>` : `<div class="sign-signature">${chairperson ? "Signature not provided" : "Not registered"}</div>`}</div><div class="sign-field"><span class="sign-field-label">Date</span><div class="sign-value">${chairperson ? esc(new Date(chairperson.registered_at).toLocaleDateString()) : "—"}</div></div></div>
     </div>
   </div>
 
