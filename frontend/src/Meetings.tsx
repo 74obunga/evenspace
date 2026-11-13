@@ -558,10 +558,11 @@ export default function Meetings({
     }
     setBusy(true);
     const title = esc(eventDetails?.title || meeting.meeting_type);
-    const timeStr = eventDetails
-      ? `${esc(new Date(eventDetails.start_at).toLocaleString([], { dateStyle: "full", timeStyle: "short" }))} · ${esc(eventDetails.timezone)}`
-      : "";
-    const presentCount = guestRegistrations.filter((r) => r.attendance_status === "present").length;
+    const dateStr = eventDetails
+      ? esc(new Date(eventDetails.start_at).toLocaleDateString([], { dateStyle: "full" }))
+      : "Date not set";
+    // This document is the registration roll; each registered person is counted in its Present summary.
+    const presentCount = guestRegistrations.length;
     const absentCount = guestRegistrations.filter((r) => r.attendance_status === "absent").length;
     const excusedCount = guestRegistrations.filter((r) => r.attendance_status === "excused").length;
 
@@ -588,7 +589,7 @@ export default function Meetings({
       color: #0f172a; background: #fff;
     }
     .register-header {
-      border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;
+      border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; width: 100%;
       display: grid; justify-items: center; text-align: center;
     }
     .register-title h1 { margin: 0 0 4px; font-size: 1.5rem; color: #0f172a; }
@@ -596,6 +597,10 @@ export default function Meetings({
     .register-identity { display:flex; justify-content:center; margin-bottom:4px; }
     .register-identity img { display:block; width:161px; height:auto; }
     .register-label { margin:0 0 9px; color:#334155; font-size:.8rem; font-weight:750; letter-spacing:.04em; }
+    .register-meta { width:100%; display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; gap:12px; margin-top:10px; color:#475569; font-size:.85rem; }
+    .register-meta > :first-child { text-align:left; }
+    .register-meta > :nth-child(2) { text-align:center; }
+    .register-meta > :last-child { text-align:right; }
     .stats-row {
       display: flex; gap: 12px; margin-bottom: 16px;
     }
@@ -640,7 +645,11 @@ export default function Meetings({
       <div class="register-identity"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="Youth Enterprise Development Fund" /></div>
       <div class="register-label">· Meeting Attendance Register</div>
       <h1>${title}</h1>
-      <p>${timeStr ? `${timeStr} · ` : ""}${esc(meeting.meeting_type)} (${esc(meeting.status)})</p>
+      <div class="register-meta">
+        <span>${dateStr}</span>
+        <span>${esc(meeting.meeting_type)}</span>
+        <span>${meeting.meeting_mode === "online" ? "Online" : "Physical"} · ${esc(meeting.status)}</span>
+      </div>
     </div>
   </div>
 
