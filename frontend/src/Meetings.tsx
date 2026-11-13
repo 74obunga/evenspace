@@ -33,6 +33,56 @@ function attendeeRoleLabel(role: string) {
   return labels[role] ?? role;
 }
 
+function createZipArchive(entries: Array<{ name: string; data: Uint8Array }>): Blob {
+  const encoder = new TextEncoder();
+  const crcTable = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let value = n;
+    for (let bit = 0; bit < 8; bit++) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    crcTable[n] = value >>> 0;
+  }
+  const crc32 = (data: Uint8Array) => {
+    let crc = 0xffffffff;
+    for (const byte of data) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const localParts: Uint8Array[] = [];
+  const centralParts: Uint8Array[] = [];
+  let localOffset = 0;
+  for (const entry of entries) {
+    const name = encoder.encode(entry.name);
+    const crc = crc32(entry.data);
+    const local = new Uint8Array(30 + name.length);
+    const localView = new DataView(local.buffer);
+    localView.setUint32(0, 0x04034b50, true); localView.setUint16(4, 20, true);
+    localView.setUint32(14, crc, true); localView.setUint32(18, entry.data.length, true);
+    localView.setUint32(22, entry.data.length, true); localView.setUint16(26, name.length, true);
+    local.set(name, 30);
+    localParts.push(local, entry.data);
+
+    const central = new Uint8Array(46 + name.length);
+    const centralView = new DataView(central.buffer);
+    centralView.setUint32(0, 0x02014b50, true); centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true); centralView.setUint32(16, crc, true);
+    centralView.setUint32(20, entry.data.length, true); centralView.setUint32(24, entry.data.length, true);
+    centralView.setUint16(28, name.length, true); centralView.setUint32(42, localOffset, true);
+    central.set(name, 46);
+    centralParts.push(central);
+    localOffset += local.length + entry.data.length;
+  }
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, 0x06054b50, true); endView.setUint16(8, entries.length, true);
+  endView.setUint16(10, entries.length, true); endView.setUint32(12, centralSize, true);
+  endView.setUint32(16, localOffset, true);
+  const totalSize = localOffset + centralSize + end.length;
+  const archive = new Uint8Array(totalSize);
+  let offset = 0;
+  for (const part of [...localParts, ...centralParts, end]) { archive.set(part, offset); offset += part.length; }
+  return new Blob([archive.buffer], { type: "application/zip" });
+}
+
 export default function Meetings({
   onGate,
   onEvents,
@@ -484,40 +534,51 @@ export default function Meetings({
     return text;
   }
 
-  function exportAttendeesCsv() {
+  async function exportAttendeesCsv() {
     if (!meeting) return;
-    const lines = [
-      ["Full Name", "Email", "Phone", "Attendee Type", "Organization / Department", "Attendance Status", "Registered At", "Notes"],
-      ...guestRegistrations.map((row) => [
-        row.full_name,
-        row.email,
-        row.phone,
-        attendeeRoleLabel(row.attendee_type),
-        row.organization || "",
-        row.attendance_status,
-        new Date(row.registered_at).toLocaleString(),
-        row.attendance_note || "",
-      ]),
-    ].map((line) => line.map(csvCell).join(",")).join("\r\n");
+    setBusy(true);
+    try {
+      const signedAttendees = guestRegistrations.filter((row) => row.signature_present);
+      const signatures = await Promise.all(signedAttendees.map(async (row, index) => {
+        const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/meetings/${meeting.id}/guest-registrations/${row.id}/signature`, { credentials: "include", cache: "no-store" });
+        if (!response.ok) throw new Error(`Could not download the signature for ${row.full_name}.`);
+        return { row, filename: `signatures/${String(index + 1).padStart(3, "0")}-${row.id}.png`, blob: await response.blob() };
+      }));
+      const signatureFiles = new Map(signatures.map(({ row, filename }) => [row.id, filename]));
+      const lines = [
+        ["Full Name", "Email", "Phone", "Attendee Type", "Organization / Department", "Attendance Status", "Registered At", "Notes", "Signature PNG"],
+        ...guestRegistrations.map((row) => [
+          row.full_name, row.email, row.phone, attendeeRoleLabel(row.attendee_type), row.organization || "",
+          row.attendance_status, new Date(row.registered_at).toLocaleString(), row.attendance_note || "",
+          signatureFiles.get(row.id) || "",
+        ]),
+      ].map((line) => line.map(csvCell).join(",")).join("\r\n");
 
-    const blob = new Blob([`\uFEFF${lines}`], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    const slug = (eventDetails?.title || meeting.meeting_type).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    anchor.download = `meeting-attendance-${slug}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setMessage("Attendee attendance roll exported as CSV (Excel compatible).");
+      const archiveEntries = [
+        { name: "attendance.csv", data: new TextEncoder().encode(`\uFEFF${lines}`) },
+        ...(await Promise.all(signatures.map(async ({ filename, blob }) => ({ name: filename, data: new Uint8Array(await blob.arrayBuffer()) })))),
+      ];
+      const zip = createZipArchive(archiveEntries);
+      const url = URL.createObjectURL(new Blob([zip], { type: "application/zip" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      const slug = (eventDetails?.title || meeting.meeting_type).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      anchor.download = `meeting-attendance-${slug}.zip`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setMessage(`Attendance CSV and ${signatures.length} signature image${signatures.length === 1 ? "" : "s"} exported.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not export attendee signatures."); }
+    finally { setBusy(false); }
   }
 
-  function printAttendancePdf() {
+  async function printAttendancePdf() {
     if (!meeting) return;
     const win = window.open("", "_blank");
     if (!win) {
       setMessage("Pop-up window was blocked. Please allow pop-ups to print the attendance roll.");
       return;
     }
+    setBusy(true);
     const title = esc(eventDetails?.title || meeting.meeting_type);
     const workspaceNameStr = esc(workspaces.find((w) => w.id === workspaceId)?.name || "EvenSpace");
     const timeStr = eventDetails
@@ -526,6 +587,14 @@ export default function Meetings({
     const presentCount = guestRegistrations.filter((r) => r.attendance_status === "present").length;
     const absentCount = guestRegistrations.filter((r) => r.attendance_status === "absent").length;
     const excusedCount = guestRegistrations.filter((r) => r.attendance_status === "excused").length;
+
+    try {
+    const signatureData = new Map(await Promise.all(guestRegistrations.filter((r) => r.signature_present).map(async (row) => {
+      const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/meetings/${meeting.id}/guest-registrations/${row.id}/signature`, { credentials: "include", cache: "no-store" });
+      if (!response.ok) throw new Error(`Could not load the signature for ${row.full_name}.`);
+      const imageUrl = URL.createObjectURL(await response.blob());
+      return [row.id, imageUrl] as const;
+    })));
 
     win.document.open();
     win.document.write(`<!DOCTYPE html>
@@ -579,6 +648,7 @@ export default function Meetings({
     .status-absent { background: #fee2e2; color: #991b1b; }
     .status-excused { background: #fef3c7; color: #92400e; }
     .status-registered { background: #e2e8f0; color: #334155; }
+    .attendee-signature { display: block; width: 120px; height: 48px; object-fit: contain; }
     .sign-section {
       margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
       font-size: 0.85rem; color: #334155; page-break-inside: avoid;
@@ -627,7 +697,7 @@ export default function Meetings({
           <td>${esc(r.email)}<br /><small style="color:#64748b">${esc(r.phone)}</small></td>
           <td>${esc(r.organization || "—")}</td>
           <td><span class="status-tag status-${esc(r.attendance_status)}">${esc(r.attendance_status)}</span></td>
-          <td></td>
+          <td>${signatureData.has(r.id) ? `<img class="attendee-signature" src="${signatureData.get(r.id)}" alt="Signature for ${esc(r.full_name)}" />` : (r.registration_source === "admin" ? "Not collected" : "Not provided")}</td>
         </tr>
       `).join("")}
       ${!guestRegistrations.length ? `<tr><td colspan="7" style="text-align:center;color:#64748b;padding:20px;">No attendees registered yet.</td></tr>` : ""}
@@ -649,10 +719,14 @@ export default function Meetings({
 </body>
 </html>`);
     win.document.close();
-    setTimeout(() => {
-      win.focus();
-      win.print();
-    }, 250);
+    await Promise.all(Array.from(win.document.images, (image) => image.decode().catch(() => undefined)));
+    win.focus();
+    win.print();
+    setTimeout(() => signatureData.forEach((url) => URL.revokeObjectURL(url)), 60_000);
+    } catch (error) {
+      win.close();
+      setMessage(error instanceof Error ? error.message : "Could not prepare the attendance PDF.");
+    } finally { setBusy(false); }
   }
 
   function printMeetingReport() {
