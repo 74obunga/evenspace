@@ -584,10 +584,10 @@ export default function Meetings({
   <meta charset="utf-8" />
   <title>Attendance Register – ${title}</title>
   <style>
-    @page { size: A4 landscape; margin: 12mm; }
+    @page { size: A4 landscape; margin: 0; }
     * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 0;
+      margin: 0; padding: 12mm;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #0f172a; background: #fff;
     }
@@ -640,9 +640,6 @@ export default function Meetings({
     .sign-value { min-height:24px; border-bottom:1px solid #94a3b8; padding:2px 0; }
     .sign-signature { height:50px; border-bottom:1px solid #94a3b8; display:flex; align-items:center; color:#64748b; font-size:.75rem; }
     .sign-signature img { max-width:100%; max-height:46px; object-fit:contain; }
-    .footer-note {
-      margin-top: 24px; font-size: 0.75rem; color: #94a3b8; text-align: right;
-    }
   </style>
 </head>
 <body>
@@ -705,7 +702,6 @@ export default function Meetings({
     </div>
   </div>
 
-  <div class="footer-note">Generated ${new Date().toLocaleString()}</div>
 </body>
 </html>`);
     win.document.close();
