@@ -1,4 +1,4 @@
-import logoUrl from "../YEDF Logo.png";
+import logoUrl from "../Logo02.png";
 
 export const YEDF_BRAND = {
   productName: "YEDF SPACE",

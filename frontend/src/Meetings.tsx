@@ -402,20 +402,11 @@ export default function Meetings({
       padding: 2.25rem 2rem; background: #fff;
     }
     .header-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 2px solid #0f172a; padding-bottom: 0.65rem; margin-bottom: 1.25rem;
+      display: grid; justify-items: center; gap: 0.55rem;
+      border-bottom: 2px solid #0f172a; padding-bottom: 0.85rem; margin-bottom: 1.25rem;
     }
-    .workspace-brand {
-      display: flex; align-items: center; gap: 10px;
-      font-weight: 800; font-size: 0.9rem; letter-spacing: 0.06em; color: #0f172a;
-    }
-    .workspace-brand img { width: 94px; height: auto; }
-    .workspace-institution { display:block; margin-top:3px; color:#475569; font-size:.65rem; font-weight:600; letter-spacing:0; }
-    .notice-badge {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; background: #0f172a; color: #fff;
-      padding: 3px 10px; border-radius: 999px;
-    }
+    .institution-logo { display:block; width:161px; height:auto; }
+    .registration-label { color:#334155; font-size:.75rem; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }
     h1 {
       font-size: 1.85rem; font-weight: 800; line-height: 1.2;
       margin: 0 0 0.4rem; color: #0f172a;
@@ -455,11 +446,6 @@ export default function Meetings({
     }
     .agenda-ol { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: #1e293b; }
     .agenda-ol li { margin-bottom: 0.2rem; }
-    .footer-bar {
-      margin-top: 1.25rem; padding-top: 0.65rem; border-top: 1px solid #e2e8f0;
-      display: flex; justify-content: space-between; font-size: 0.72rem;
-      color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;
-    }
     @media print {
       body { padding: 0; }
       .placard { border: 2px solid #000; }
@@ -469,8 +455,8 @@ export default function Meetings({
 <body>
   <div class="placard">
     <div class="header-bar">
-      <span class="workspace-brand"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="" /><span>${esc(YEDF_BRAND.productName)}<small class="workspace-institution">${esc(YEDF_BRAND.institutionName)}</small></span></span>
-      <span class="notice-badge">Attendance Registration</span>
+      <img class="institution-logo" src="${esc(YEDF_BRAND.logoUrl)}" alt="Youth Enterprise Development Fund" />
+      <div class="registration-label">Attendance Registration</div>
     </div>
     <h1>${title}</h1>
     <div class="meeting-meta">${meetingTypeStr}${timeStr ? ` · ${timeStr}` : ""}</div>
@@ -486,10 +472,6 @@ export default function Meetings({
     </div>
     ${agendaHtml}
     <div class="subtext">If you cannot scan the code, contact the meeting organiser for assistance.</div>
-    <div class="footer-bar">
-      <span>${esc(YEDF_BRAND.institutionName)}</span>
-      <span>${esc(YEDF_BRAND.productDescription)}</span>
-    </div>
   </div>
 </body>
 </html>`);
@@ -576,7 +558,6 @@ export default function Meetings({
     }
     setBusy(true);
     const title = esc(eventDetails?.title || meeting.meeting_type);
-    const workspaceNameStr = esc(YEDF_BRAND.institutionName);
     const timeStr = eventDetails
       ? `${esc(new Date(eventDetails.start_at).toLocaleString([], { dateStyle: "full", timeStyle: "short" }))} · ${esc(eventDetails.timezone)}`
       : "";
@@ -608,19 +589,13 @@ export default function Meetings({
     }
     .register-header {
       border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;
-      display: flex; justify-content: space-between; align-items: flex-end;
+      display: grid; justify-items: center; text-align: center;
     }
     .register-title h1 { margin: 0 0 4px; font-size: 1.5rem; color: #0f172a; }
     .register-title p { margin: 0; color: #475569; font-size: 0.9rem; }
-    .register-identity { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-    .register-identity img { width:94px; height:auto; }
-    .register-identity span { display:grid; gap:2px; font-weight:800; letter-spacing:.04em; }
-    .register-identity small { color:#475569; font-size:.72rem; font-weight:600; letter-spacing:0; }
-    .badge {
-      display: inline-block; padding: 4px 10px; border-radius: 999px;
-      background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.08em;
-    }
+    .register-identity { display:flex; justify-content:center; margin-bottom:4px; }
+    .register-identity img { display:block; width:161px; height:auto; }
+    .register-label { margin:0 0 9px; color:#334155; font-size:.8rem; font-weight:750; letter-spacing:.04em; }
     .stats-row {
       display: flex; gap: 12px; margin-bottom: 16px;
     }
@@ -662,11 +637,11 @@ export default function Meetings({
 <body>
   <div class="register-header">
     <div class="register-title">
-      <div class="register-identity"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="" /><span>${esc(YEDF_BRAND.productName)}<small>${workspaceNameStr}</small><small>${esc(YEDF_BRAND.productDescription)}</small></span></div>
+      <div class="register-identity"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="Youth Enterprise Development Fund" /></div>
+      <div class="register-label">· Meeting Attendance Register</div>
       <h1>${title}</h1>
       <p>${timeStr ? `${timeStr} · ` : ""}${esc(meeting.meeting_type)} (${esc(meeting.status)})</p>
     </div>
-    <div><span class="badge">Official Record</span></div>
   </div>
 
   <div class="stats-row">
@@ -715,7 +690,7 @@ export default function Meetings({
     </div>
   </div>
 
-  <div class="footer-note">${esc(YEDF_BRAND.productDescription)} · Generated ${new Date().toLocaleString()}</div>
+  <div class="footer-note">Generated ${new Date().toLocaleString()}</div>
 </body>
 </html>`);
     win.document.close();
