@@ -584,14 +584,15 @@ export default function Meetings({
     @page { size: A4 landscape; margin: 12mm; }
     * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 16px;
+      margin: 0; padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #0f172a; background: #fff;
     }
     .register-header {
       border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; width: 100%;
-      display: grid; justify-items: center; text-align: center;
+      display: block; text-align: center;
     }
+    .register-title { width:100%; }
     .register-title h1 { margin: 0 0 4px; font-size: 1.5rem; color: #0f172a; }
     .register-title p { margin: 0; color: #475569; font-size: 0.9rem; }
     .register-identity { display:flex; justify-content:center; margin-bottom:4px; }
