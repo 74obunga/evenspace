@@ -911,7 +911,7 @@ export default function Meetings({
       <aside className="meeting-card meeting-sidebar" id="meeting-list"><div className="meeting-section-title"><div><h2>Meetings</h2><p>Private workspace events</p></div></div>
         <form className="meeting-create" onSubmit={(e) => void createMeeting(e)}>
           <label className="field"><span>Meeting title</span><input required maxLength={200} value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)} placeholder="Quarterly staff conference" /></label>
-          <label className="field"><span>Meeting type (optional)</span><input maxLength={80} value={meetingType} onChange={(e) => setMeetingType(e.target.value)} placeholder="Defaults to General meeting" /></label>
+          <label className="field"><span>Meeting type (optional)</span><input maxLength={80} value={meetingType} onChange={(e) => setMeetingType(e.target.value)} /></label>
           <label className="field"><span>Starts</span><input required type="datetime-local" value={meetingStart} onChange={(e) => setMeetingStart(e.target.value)} /></label>
           <label className="field"><span>Ends</span><input required type="datetime-local" value={meetingEnd} onChange={(e) => setMeetingEnd(e.target.value)} /></label>
           <label className="field"><span>Meeting format</span><select value={meetingMode} onChange={(e) => setMeetingMode(e.target.value as "physical" | "online")}><option value="physical">Physical</option><option value="online">Online</option></select></label>
