@@ -30,6 +30,7 @@ class Meeting(Base):
     meeting_type: Mapped[str] = mapped_column(String(80))
     meeting_mode: Mapped[str] = mapped_column(String(16), default="physical", server_default="physical")
     online_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(300), nullable=True)
     chairperson_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft")
     cancellation_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)

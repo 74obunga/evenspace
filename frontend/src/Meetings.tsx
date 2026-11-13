@@ -15,7 +15,7 @@ function defaultMeetingTime(hour: number) {
   return local.toISOString().slice(0, 16);
 }
 type Workspace = { id: string; name: string; role: string };
-type Meeting = { id: string; workspace_id: string; event_id: string; meeting_type: string; meeting_mode: "physical" | "online"; online_url: string | null; status: string; cancellation_reason: string | null; created_at: string };
+type Meeting = { id: string; workspace_id: string; event_id: string; meeting_type: string; meeting_mode: "physical" | "online"; online_url: string | null; location: string | null; status: string; cancellation_reason: string | null; created_at: string };
 type EventDetails = { id: string; title: string; start_at: string; end_at: string; timezone: string };
 type Agenda = { id: string; position: number; title: string; description: string | null; duration_minutes: number | null };
 type Minutes = { id: string; revision: number; content: string; status: string; approval_note: string | null };
@@ -124,6 +124,7 @@ export default function Meetings({
   const [meetingEnd, setMeetingEnd] = useState(() => defaultMeetingTime(10));
   const [meetingMode, setMeetingMode] = useState<"physical" | "online">("physical");
   const [onlineUrl, setOnlineUrl] = useState("");
+  const [meetingLocation, setMeetingLocation] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [showOrganizer, setShowOrganizer] = useState(false);
@@ -312,6 +313,7 @@ export default function Meetings({
           start_at: new Date(meetingStart).toISOString(), end_at: new Date(meetingEnd).toISOString(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Nairobi",
           meeting_mode: meetingMode, online_url: meetingMode === "online" ? onlineUrl : null,
+          location: meetingMode === "physical" ? meetingLocation : null,
         }),
       });
       await reloadMeetings(); await reloadMeeting(created.id);
@@ -573,7 +575,8 @@ export default function Meetings({
       const imageUrl = URL.createObjectURL(await response.blob());
       return [row.id, imageUrl] as const;
     })));
-
+    const secretary = guestRegistrations.find((row) => row.attendee_type === "secretary");
+    const chairperson = guestRegistrations.find((row) => row.attendee_type === "chairperson");
     win.document.open();
     win.document.write(`<!DOCTYPE html>
 <html lang="en">
@@ -630,11 +633,13 @@ export default function Meetings({
     .status-excused { background: #fef3c7; color: #92400e; }
     .status-registered { background: #e2e8f0; color: #334155; }
     .attendee-signature { display: block; width: 120px; height: 48px; object-fit: contain; }
-    .sign-section {
-      margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
-      font-size: 0.85rem; color: #334155; page-break-inside: avoid;
-    }
-    .sign-box { border-top: 1px solid #94a3b8; padding-top: 8px; }
+    .sign-section { margin-top:32px; display:grid; grid-template-columns:1fr 1fr; gap:40px; font-size:.85rem; color:#334155; page-break-inside:avoid; }
+    .sign-box { border-top:1px solid #94a3b8; padding-top:8px; }
+    .sign-fields { display:grid; grid-template-columns:1fr 1fr 110px; gap:12px; margin-top:12px; }
+    .sign-field-label { display:block; color:#64748b; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+    .sign-value { min-height:24px; border-bottom:1px solid #94a3b8; padding:2px 0; }
+    .sign-signature { height:50px; border-bottom:1px solid #94a3b8; display:flex; align-items:center; color:#64748b; font-size:.75rem; }
+    .sign-signature img { max-width:100%; max-height:46px; object-fit:contain; }
     .footer-note {
       margin-top: 24px; font-size: 0.75rem; color: #94a3b8; text-align: right;
     }
@@ -649,7 +654,7 @@ export default function Meetings({
       <div class="register-meta">
         <span>${dateStr}</span>
         <span>${esc(meeting.meeting_type)}</span>
-        <span>${meeting.meeting_mode === "online" ? "Online" : "Physical"} · ${esc(meeting.status)}</span>
+        <span>${meeting.meeting_mode === "online" ? "Online" : esc(meeting.location || "Physical location not specified")} · ${esc(meeting.status)}</span>
       </div>
     </div>
   </div>
@@ -691,12 +696,12 @@ export default function Meetings({
 
   <div class="sign-section">
     <div class="sign-box">
-      <strong>Meeting Secretary / Recorder:</strong><br /><br />
-      Name: ____________________________________ Signature: ______________________ Date: ___________
+      <strong>Meeting Secretary / Recorder:</strong>
+      <div class="sign-fields"><div><span class="sign-field-label">Name</span><div class="sign-value">${secretary ? esc(secretary.full_name) : "Not registered"}</div></div><div><span class="sign-field-label">Signature</span>${secretary && signatureData.has(secretary.id) ? `<div class="sign-signature"><img src="${signatureData.get(secretary.id)}" alt="Signature for ${esc(secretary.full_name)}" /></div>` : `<div class="sign-signature">${secretary ? "Signature not provided" : "Not registered"}</div>`}</div><div><span class="sign-field-label">Date</span><div class="sign-value">${secretary ? esc(new Date(secretary.registered_at).toLocaleDateString()) : "—"}</div></div></div>
     </div>
     <div class="sign-box">
-      <strong>Chairperson / Presiding Officer:</strong><br /><br />
-      Name: ____________________________________ Signature: ______________________ Date: ___________
+      <strong>Chairperson / Presiding Officer:</strong>
+      <div class="sign-fields"><div><span class="sign-field-label">Name</span><div class="sign-value">${chairperson ? esc(chairperson.full_name) : "Not registered"}</div></div><div><span class="sign-field-label">Signature</span>${chairperson && signatureData.has(chairperson.id) ? `<div class="sign-signature"><img src="${signatureData.get(chairperson.id)}" alt="Signature for ${esc(chairperson.full_name)}" /></div>` : `<div class="sign-signature">${chairperson ? "Signature not provided" : "Not registered"}</div>`}</div><div><span class="sign-field-label">Date</span><div class="sign-value">${chairperson ? esc(new Date(chairperson.registered_at).toLocaleDateString()) : "—"}</div></div></div>
     </div>
   </div>
 
@@ -910,6 +915,7 @@ export default function Meetings({
           <label className="field"><span>Starts</span><input required type="datetime-local" value={meetingStart} onChange={(e) => setMeetingStart(e.target.value)} /></label>
           <label className="field"><span>Ends</span><input required type="datetime-local" value={meetingEnd} onChange={(e) => setMeetingEnd(e.target.value)} /></label>
           <label className="field"><span>Meeting format</span><select value={meetingMode} onChange={(e) => setMeetingMode(e.target.value as "physical" | "online")}><option value="physical">Physical</option><option value="online">Online</option></select></label>
+          {meetingMode === "physical" && <label className="field"><span>Meeting location</span><input maxLength={300} value={meetingLocation} onChange={(e) => setMeetingLocation(e.target.value)} placeholder="Building, room, or venue" /></label>}
           {meetingMode === "online" && <label className="field"><span>Google Meet or Zoom link</span><input required type="url" value={onlineUrl} onChange={(e) => setOnlineUrl(e.target.value)} placeholder="https://meet.google.com/..." /></label>}
           <small className="meeting-timezone-note">Times use {Intl.DateTimeFormat().resolvedOptions().timeZone || "your device timezone"}.</small>
           <button className="button button-primary full-width" disabled={busy || !workspaceId}><Plus size={15} /> Schedule meeting</button>
@@ -920,7 +926,7 @@ export default function Meetings({
         </button>)}{!meetings.length && <p className="meeting-empty">No meeting records yet.</p>}{meetings.length > 0 && !meetings.some((row) => `${eventTitles[row.event_id] ?? ""} ${row.meeting_type} ${row.status}`.toLocaleLowerCase().includes(meetingSearch.trim().toLocaleLowerCase())) && <p className="meeting-empty">No meetings match your search.</p>}</div>
       </aside>
       {meeting ? <div className="meeting-content">
-        {meetingSection === "overview" && <section className="meeting-card meeting-summary"><div><span className="meeting-kicker">{meeting.status.toUpperCase()} · {meeting.meeting_type}</span><h2>{eventDetails?.title || meeting.meeting_type}</h2><p>{eventDetails ? `${new Date(eventDetails.start_at).toLocaleString()} · ${eventDetails.timezone}` : `Event ID · ${meeting.event_id}`}</p><p>{meeting.meeting_mode === "online" ? "Online meeting" : "Physical meeting"}</p></div>
+        {meetingSection === "overview" && <section className="meeting-card meeting-summary"><div><span className="meeting-kicker">{meeting.status.toUpperCase()} · {meeting.meeting_type}</span><h2>{eventDetails?.title || meeting.meeting_type}</h2><p>{eventDetails ? `${new Date(eventDetails.start_at).toLocaleString()} · ${eventDetails.timezone}` : `Event ID · ${meeting.event_id}`}</p><p>{meeting.meeting_mode === "online" ? "Online meeting" : `Physical meeting${meeting.location ? ` · ${meeting.location}` : ""}`}</p></div>
           <div className="record-actions">
             <button className="button button-secondary" type="button" onClick={() => void printMeetingReport()} title="Print complete meeting package (agenda, minutes, decisions, actions, attendance)"><FileText size={14} /> Full Dossier / PDF</button>
             {meeting.status === "scheduled" && meeting.meeting_mode === "online" && meeting.online_url && <a className="button button-secondary" href={meeting.online_url} target="_blank" rel="noreferrer">Join online</a>}

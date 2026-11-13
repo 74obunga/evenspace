@@ -88,6 +88,7 @@ def create_scheduled_meeting(db: Session, workspace_id: UUID, created_by_id: UUI
             meeting_type=data["meeting_type"],
             meeting_mode=data["meeting_mode"],
             online_url=data.get("online_url"),
+            location=data.get("location"),
             status="scheduled",
             created_by_id=created_by_id,
         )

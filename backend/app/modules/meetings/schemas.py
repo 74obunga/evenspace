@@ -33,6 +33,7 @@ class MeetingScheduleCreate(BaseModel):
     timezone: str = Field(min_length=1, max_length=80)
     meeting_mode: Literal["physical", "online"] = "physical"
     online_url: str | None = Field(default=None, max_length=500)
+    location: str | None = Field(default=None, max_length=300)
 
     @field_validator("title", "meeting_type", "timezone")
     @classmethod
@@ -66,6 +67,11 @@ class MeetingScheduleCreate(BaseModel):
             raise ValueError("Use a secure Google Meet or Zoom link")
         return value
 
+    @field_validator("location")
+    @classmethod
+    def normalize_location(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
     @model_validator(mode="after")
     def valid_meeting_schedule(self):
         try:
@@ -78,16 +84,21 @@ class MeetingScheduleCreate(BaseModel):
             raise ValueError("Add a Google Meet or Zoom link for online meetings")
         if self.meeting_mode == "physical" and self.online_url:
             raise ValueError("Online meeting link is only used for online meetings")
+        if self.meeting_mode == "online" and self.location:
+            raise ValueError("Physical location is only used for physical meetings")
         return self
 
 
 class MeetingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     workspace_id: UUID
     event_id: UUID
     meeting_type: str
     meeting_mode: str = "physical"
     online_url: str | None = None
+    location: str | None = None
     chairperson_id: UUID | None
     status: str
     cancellation_reason: str | None
