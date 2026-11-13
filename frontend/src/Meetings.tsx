@@ -582,7 +582,7 @@ export default function Meetings({
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Attendance Register – ${title}</title>
+  <title></title>
   <style>
     @page { size: A4 landscape; margin: 0; }
     * { box-sizing: border-box; }
@@ -705,6 +705,8 @@ export default function Meetings({
 </body>
 </html>`);
     win.document.close();
+    win.document.title = " ";
+    try { win.history.replaceState(null, "", window.location.origin); } catch { /* Keep the blank print window if the browser disallows URL replacement. */ }
     await Promise.all(Array.from(win.document.images, (image) => image.decode().catch(() => undefined)));
     win.focus();
     win.print();
