@@ -5,6 +5,7 @@ import {
   Smartphone, Ticket, Trash2, Users,
 } from "lucide-react";
 import { api } from "./api";
+import { BrandLockup, YEDF_BRAND } from "./Branding";
 
 type Workspace = { id: string; name: string; role: string };
 type TicketType = { id: string; name: string; description: string | null; price: string; capacity: number | null; registration_count: number };
@@ -261,7 +262,7 @@ export default function OrganizerDashboard({
 
   return <main className="meeting-shell organizer-dashboard">
     <header className="meeting-header">
-      <a className="brand" href="#top"><span className="brand-mark"><span /></span><span>evenspace</span></a>
+      <a className="brand" href="#top" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a>
       <div className="meeting-user">
         <span className="current-nav-pill">Events</span>
         <button className="meeting-link" type="button" onClick={onMeetings}>Meetings</button>
@@ -574,6 +575,6 @@ export default function OrganizerDashboard({
         )}
       </div>
     </div>
-    <footer className="footer"><span>EVENSPACE</span><span>Event registration & attendance overview</span></footer>
+    <footer className="footer"><span>YEDF SPACE</span><span>Event registration & attendance overview</span></footer>
   </main>;
 }

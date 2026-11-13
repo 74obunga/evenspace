@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CheckCircle2, Mail, Users } from "lucide-react";
 import { API_BASE } from "./apiBase";
+import { BrandLockup, InstitutionalFooter, YEDF_BRAND } from "./Branding";
 
 type InvitationInfo = { email: string; role: string; workspace_name: string; expires_at: string };
 
@@ -41,15 +42,15 @@ export default function InvitationAccept({ token, onDone }: { token: string; onD
   }
 
   return <main className="meeting-shell">
-    <header className="meeting-header"><a className="brand" href="/"><span className="brand-mark"><span /></span><span>evenspace</span></a><span className="meeting-tag"><Users size={14} /> WORKSPACE INVITATION</span></header>
-    <section className="meeting-welcome"><span className="meeting-kicker"><Mail size={15} /> JOIN A WORKSPACE</span><h1>You're <em>invited.</em></h1><p>Accept the invitation to access your organization's EvenSpace workspace.</p></section>
+    <header className="meeting-header"><a className="brand" href="/" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a><span className="meeting-tag"><Users size={14} /> STAFF INVITATION</span></header>
+    <section className="meeting-welcome"><span className="meeting-kicker"><Mail size={15} /> STAFF ACCESS</span><h1>You're <em>invited.</em></h1><p>Accept the invitation to access your organisation's YEDF SPACE account.</p></section>
     <form className="meeting-card auth-card" onSubmit={(event) => void accept(event)}>
       {info ? <><div className="meeting-join-confirmation"><CheckCircle2 size={22} /><div><strong>{info.workspace_name}</strong><span>{info.email} · {info.role} access</span></div></div>
-        <label className="field"><span>{info.email} account password, or create a password</span><input type="password" required minLength={12} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><small className="field-help">Use your existing EvenSpace password if you already have an account with this email. The link expires {new Date(info.expires_at).toLocaleString()}.</small></label>
+        <label className="field"><span>{info.email} account password, or create a password</span><input type="password" required minLength={12} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /><small className="field-help">Use your existing password if you already have a YEDF SPACE account with this email. The link expires {new Date(info.expires_at).toLocaleString()}.</small></label>
         {message && <p className="meeting-message" role={error ? "alert" : "status"}>{message}</p>}
         <button className="button button-primary full-width" disabled={busy}>{busy ? "Joining…" : "Accept invitation"}</button>
       </> : <p className="meeting-message" role={error ? "alert" : "status"}>{message}</p>}
     </form>
-    <footer className="footer"><span>EVENSPACE</span><span>Workspace access</span></footer>
+    <InstitutionalFooter />
   </main>;
 }

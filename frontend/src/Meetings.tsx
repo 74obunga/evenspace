@@ -5,6 +5,7 @@ import OrganizerDashboard from "./OrganizerDashboard";
 import NotificationTemplates from "./NotificationTemplates";
 import { api } from "./api";
 import { API_BASE } from "./apiBase";
+import { BrandLockup, InstitutionalFooter, YEDF_BRAND } from "./Branding";
 
 function defaultMeetingTime(hour: number) {
   const date = new Date();
@@ -367,7 +368,6 @@ export default function Meetings({
       const svgHtml = svgNode.outerHTML;
 
       const title = esc(eventDetails?.title || meeting.meeting_type);
-      const workspaceNameStr = esc(workspaces.find((w) => w.id === workspaceId)?.name || "EvenSpace");
       const meetingTypeStr = esc(meeting.meeting_type);
       const timeStr = eventDetails
         ? `${esc(new Date(eventDetails.start_at).toLocaleString([], { dateStyle: "full", timeStyle: "short" }))} · ${esc(eventDetails.timezone)}`
@@ -406,9 +406,11 @@ export default function Meetings({
       border-bottom: 2px solid #0f172a; padding-bottom: 0.65rem; margin-bottom: 1.25rem;
     }
     .workspace-brand {
-      font-weight: 800; font-size: 0.9rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #0f172a;
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 0.9rem; letter-spacing: 0.06em; color: #0f172a;
     }
+    .workspace-brand img { width: 94px; height: auto; }
+    .workspace-institution { display:block; margin-top:3px; color:#475569; font-size:.65rem; font-weight:600; letter-spacing:0; }
     .notice-badge {
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase; background: #0f172a; color: #fff;
@@ -453,11 +455,6 @@ export default function Meetings({
     }
     .agenda-ol { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: #1e293b; }
     .agenda-ol li { margin-bottom: 0.2rem; }
-    .url-fallback {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.72rem; color: #64748b; background: #f1f5f9; padding: 5px 10px;
-      border-radius: 4px; display: inline-block; max-width: 95%; word-break: break-all;
-    }
     .footer-bar {
       margin-top: 1.25rem; padding-top: 0.65rem; border-top: 1px solid #e2e8f0;
       display: flex; justify-content: space-between; font-size: 0.72rem;
@@ -472,8 +469,8 @@ export default function Meetings({
 <body>
   <div class="placard">
     <div class="header-bar">
-      <span class="workspace-brand">${workspaceNameStr}</span>
-      <span class="notice-badge">Official Roll</span>
+      <span class="workspace-brand"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="" /><span>${esc(YEDF_BRAND.productName)}<small class="workspace-institution">${esc(YEDF_BRAND.institutionName)}</small></span></span>
+      <span class="notice-badge">Attendance Registration</span>
     </div>
     <h1>${title}</h1>
     <div class="meeting-meta">${meetingTypeStr}${timeStr ? ` · ${timeStr}` : ""}</div>
@@ -481,26 +478,25 @@ export default function Meetings({
       ${svgHtml}
     </div>
     <div class="callout">Scan to Register Attendance</div>
-    <div class="subtext">Scan this QR code with your smartphone camera to access the official attendance registration form for this meeting.</div>
+    <div class="subtext">Scan with your phone camera, complete the registration form, and sign to confirm your attendance.</div>
     <div class="steps">
       <div class="step-item"><div class="step-num">Step 1</div>Point your camera at this QR code</div>
       <div class="step-item"><div class="step-num">Step 2</div>Tap the registration link prompt</div>
-      <div class="step-item"><div class="step-num">Step 3</div>Submit your name to sign the roll</div>
+      <div class="step-item"><div class="step-num">Step 3</div>Submit your details and signature</div>
     </div>
     ${agendaHtml}
-    <div><span class="url-fallback">${esc(guestJoinLink)}</span></div>
+    <div class="subtext">If you cannot scan the code, contact the meeting organiser for assistance.</div>
     <div class="footer-bar">
-      <span>EvenSpace Governance</span>
-      <span>Institutional Meeting Record</span>
+      <span>${esc(YEDF_BRAND.institutionName)}</span>
+      <span>${esc(YEDF_BRAND.productDescription)}</span>
     </div>
   </div>
 </body>
 </html>`);
       win.document.close();
-      setTimeout(() => {
-        win.focus();
-        win.print();
-      }, 250);
+      await Promise.all(Array.from(win.document.images, (image) => image.decode().catch(() => undefined)));
+      win.focus();
+      win.print();
     } catch {
       win.close();
       setMessage("Could not generate the printable meeting QR sign.");
@@ -580,7 +576,7 @@ export default function Meetings({
     }
     setBusy(true);
     const title = esc(eventDetails?.title || meeting.meeting_type);
-    const workspaceNameStr = esc(workspaces.find((w) => w.id === workspaceId)?.name || "EvenSpace");
+    const workspaceNameStr = esc(YEDF_BRAND.institutionName);
     const timeStr = eventDetails
       ? `${esc(new Date(eventDetails.start_at).toLocaleString([], { dateStyle: "full", timeStyle: "short" }))} · ${esc(eventDetails.timezone)}`
       : "";
@@ -616,6 +612,10 @@ export default function Meetings({
     }
     .register-title h1 { margin: 0 0 4px; font-size: 1.5rem; color: #0f172a; }
     .register-title p { margin: 0; color: #475569; font-size: 0.9rem; }
+    .register-identity { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .register-identity img { width:94px; height:auto; }
+    .register-identity span { display:grid; gap:2px; font-weight:800; letter-spacing:.04em; }
+    .register-identity small { color:#475569; font-size:.72rem; font-weight:600; letter-spacing:0; }
     .badge {
       display: inline-block; padding: 4px 10px; border-radius: 999px;
       background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 700;
@@ -662,7 +662,7 @@ export default function Meetings({
 <body>
   <div class="register-header">
     <div class="register-title">
-      <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;font-weight:700;">${workspaceNameStr} · Meeting Attendance Register</div>
+      <div class="register-identity"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="" /><span>${esc(YEDF_BRAND.productName)}<small>${workspaceNameStr}</small><small>${esc(YEDF_BRAND.productDescription)}</small></span></div>
       <h1>${title}</h1>
       <p>${timeStr ? `${timeStr} · ` : ""}${esc(meeting.meeting_type)} (${esc(meeting.status)})</p>
     </div>
@@ -715,7 +715,7 @@ export default function Meetings({
     </div>
   </div>
 
-  <div class="footer-note">Generated by EvenSpace Governance Platform · ${new Date().toLocaleString()}</div>
+  <div class="footer-note">${esc(YEDF_BRAND.productDescription)} · Generated ${new Date().toLocaleString()}</div>
 </body>
 </html>`);
     win.document.close();
@@ -729,7 +729,7 @@ export default function Meetings({
     } finally { setBusy(false); }
   }
 
-  function printMeetingReport() {
+  async function printMeetingReport() {
     if (!meeting) return;
     const win = window.open("", "_blank");
     if (!win) {
@@ -737,7 +737,7 @@ export default function Meetings({
       return;
     }
     const title = esc(eventDetails?.title || meeting.meeting_type);
-    const workspaceNameStr = esc(workspaces.find((w) => w.id === workspaceId)?.name || "EvenSpace");
+    const workspaceNameStr = esc(YEDF_BRAND.institutionName);
     const timeStr = eventDetails
       ? `${esc(new Date(eventDetails.start_at).toLocaleString([], { dateStyle: "full", timeStyle: "short" }))} · ${esc(eventDetails.timezone)}`
       : "";
@@ -761,6 +761,7 @@ export default function Meetings({
       border-bottom: 3px double #0f172a; padding-bottom: 14px; margin-bottom: 20px;
     }
     .header .org { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+    .header .org img { width:96px; height:auto; vertical-align:middle; margin-right:12px; }
     .header h1 { margin: 6px 0 4px; font-size: 1.7rem; color: #0f172a; }
     .header .meta { font-size: 0.95rem; color: #334155; }
     .section { margin-bottom: 24px; page-break-inside: avoid; }
@@ -785,7 +786,7 @@ export default function Meetings({
 </head>
 <body>
   <div class="header">
-    <div class="org">${workspaceNameStr} · Institutional Governance</div>
+    <div class="org"><img src="${esc(YEDF_BRAND.logoUrl)}" alt="" />${esc(YEDF_BRAND.productName)} · ${workspaceNameStr}</div>
     <h1>${title}</h1>
     <div class="meta">${esc(meeting.meeting_type)} · ${timeStr ? `${timeStr} · ` : ""}Status: <strong>${esc(meeting.status)}</strong></div>
   </div>
@@ -841,23 +842,22 @@ export default function Meetings({
   </div>
 
   <div class="footer">
-    <span>EvenSpace Institutional Record</span>
+    <span>${esc(YEDF_BRAND.productDescription)}</span>
     <span>Generated: ${new Date().toLocaleString()}</span>
   </div>
 </body>
 </html>`);
     win.document.close();
-    setTimeout(() => {
-      win.focus();
-      win.print();
-    }, 250);
+    await Promise.all(Array.from(win.document.images, (image) => image.decode().catch(() => undefined)));
+    win.focus();
+    win.print();
   }
 
   if (!userEmail) return <main className="meeting-shell">
-    <header className="meeting-header"><a className="brand" href="#top"><span className="brand-mark"><span /></span><span>evenspace</span></a><div className="meeting-user"><button className="meeting-link" onClick={onGate}>Gate scanner</button><span className="meeting-tag">MEETING GOVERNANCE</span></div></header>
+    <header className="meeting-header"><a className="brand" href="#top" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a><div className="meeting-user"><button className="meeting-link" onClick={onGate}>Gate scanner</button><span className="meeting-tag">MEETINGS</span></div></header>
     <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> WORKSPACE MEETINGS</span><h1>Meet with <em>purpose.</em></h1><p>Prepare agendas, approve minutes, record decisions, and follow actions through.</p></section>
     <form className="meeting-card auth-card" onSubmit={(event) => void authenticate(event)}>
-      <h2>{isForgotPassword ? "Reset your password" : isResendVerification ? "Verify your email" : isRegister ? "Create your workspace" : "Sign in to EvenSpace"}</h2>
+      <h2>{isForgotPassword ? "Reset your password" : isResendVerification ? "Verify your email" : isRegister ? "Create your workspace" : `Sign in to ${YEDF_BRAND.productName}`}</h2>
       <label className="field"><span>Email</span><input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
       {!isForgotPassword && !isResendVerification && <label className="field"><span>Password</span><input type="password" required minLength={isRegister ? 12 : 1} autoComplete={isRegister ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} /></label>}
       {isRegister && !isForgotPassword && !isResendVerification && <label className="field"><span>Workspace name</span><input required value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} /></label>}
@@ -866,10 +866,10 @@ export default function Meetings({
       {isForgotPassword || isResendVerification ? <button className="meeting-link" type="button" onClick={() => { setIsForgotPassword(false); setIsResendVerification(false); setMessage(""); }}>Back to sign in</button> : <>
         {!isRegister && <button className="meeting-link" type="button" onClick={() => { setIsForgotPassword(true); setIsResendVerification(false); setMessage(""); }}>Forgot password?</button>}
         {(needsVerification || message.startsWith("Account created")) && <button className="meeting-link" type="button" onClick={() => { setIsResendVerification(true); setIsForgotPassword(false); setMessage(""); }}>Resend verification email</button>}
-        <button className="meeting-link" type="button" onClick={() => { setIsRegister(!isRegister); setNeedsVerification(false); setMessage(""); }}>{isRegister ? "Already have an account? Sign in" : "New to EvenSpace? Create an account"}</button>
+        <button className="meeting-link" type="button" onClick={() => { setIsRegister(!isRegister); setNeedsVerification(false); setMessage(""); }}>{isRegister ? "Already have an account? Sign in" : `New to ${YEDF_BRAND.productName}? Create an account`}</button>
       </>}
     </form>
-    <footer className="footer"><span>EVENSPACE</span><span>Institutional meeting records</span></footer>
+    <InstitutionalFooter />
   </main>;
 
   if (showOrganizer) return <OrganizerDashboard onMeetings={() => setShowOrganizer(false)} onGate={onGate} onParticipant={onParticipant} />;
@@ -877,7 +877,7 @@ export default function Meetings({
   const base = meeting && workspaceId ? `/workspaces/${workspaceId}/meetings/${meeting.id}` : "";
   return <main className="meeting-shell">
     <header className="meeting-header">
-      <a className="brand" href="#top"><span className="brand-mark"><span /></span><span>evenspace</span></a>
+      <a className="brand" href="#top" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a>
       <div className="meeting-user">
         <button className="meeting-link" type="button" onClick={() => onEvents ? onEvents() : setShowOrganizer(true)}>Events</button>
         <span className="current-nav-pill">Meetings</span>
@@ -887,7 +887,7 @@ export default function Meetings({
         <button type="button" className="meeting-link" onClick={() => void api("/auth/logout", { method: "POST" }).then(() => { setUserEmail(""); setMeeting(null); }).catch((e) => setMessage(e.message))}>Sign out</button>
       </div>
     </header>
-    <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> MEETING GOVERNANCE</span><h1>Run the meeting, <em>keep the record.</em></h1><p>Manage agendas, approvals, decisions, attendance, and accountable follow-through.</p></section>
+    <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> MEETINGS</span><h1>Run the meeting, <em>keep the record.</em></h1><p>Manage agendas, approvals, decisions, attendance, and accountable follow-through.</p></section>
     {message && <div className="notice notice-info" role="status">{message}<button className="meeting-dismiss" onClick={() => setMessage("")}>×</button></div>}
     <section className="meeting-card workspace-bar"><label className="field"><span>Workspace</span><select value={workspaceId} onChange={(e) => changeWorkspace(e.target.value)}>
       {workspaces.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.role}</option>)}</select></label><button className="button button-secondary" onClick={() => void reloadMeetings()}><RefreshCw size={15} /> Refresh</button></section>
@@ -946,7 +946,7 @@ export default function Meetings({
         </section>}
         {meetingSection === "checkin" && meeting.status === "scheduled" && <section className="meeting-card guest-qr-card">
           <div className="meeting-section-title"><div><h2>Guest registration QR</h2><p>Attendees scan this code to join the meeting list.</p></div><span className="meeting-kicker"><QrCode size={14} /> PRIVATE LINK</span></div>
-          {!guestJoinLink ? <div className="guest-qr-empty"><p>Generate a QR after scheduling, then display it at the entrance or share its link with attendees. Attendee phones must be able to reach the address used to open EvenSpace.</p><button className="button button-primary" disabled={busy} onClick={() => void generateGuestJoinLink()}><QrCode size={15} /> Generate meeting QR</button></div> : <div className="guest-qr-content">
+          {!guestJoinLink ? <div className="guest-qr-empty"><p>Generate a QR after scheduling, then display it at the entrance or share its link with attendees. Attendee phones must be able to reach YEDF SPACE.</p><button className="button button-primary" disabled={busy} onClick={() => void generateGuestJoinLink()}><QrCode size={15} /> Generate meeting QR</button></div> : <div className="guest-qr-content">
             <MeetingQrCode value={guestJoinLink} />
             <div className="guest-qr-details"><strong>{eventDetails?.title || meeting.meeting_type} registration</strong><span>Staff and guests register with their contact details and a signature. Location sharing is optional.</span><label className="field"><span>Join link</span><input readOnly value={guestJoinLink} onFocus={(event) => event.currentTarget.select()} /></label>
               <div className="record-actions">
@@ -1034,11 +1034,13 @@ export default function Meetings({
         <section className="meeting-card"><div className="meeting-section-title"><div><h2>Minutes</h2><p>Submitted and approved versions are retained as revisions</p></div></div>
           <form className="meeting-stack-form" onSubmit={(event) => void submit(event, () => api(`${base}/minutes`, { method: "POST", body: JSON.stringify({ content: new FormData(event.currentTarget).get("content") }) }), "Minutes revision saved.")}><textarea name="content" required rows={4} placeholder="Write the meeting minutes…" /><button className="button button-primary" disabled={busy}>Save new revision</button></form>
           <div className="meeting-record-list">{minutes.map((row) => <article className="meeting-record" key={row.id}><div><strong>Revision {row.revision} · {row.status}</strong><small>{row.content}</small></div><div className="record-actions">{row.status === "draft" && <button className="button button-secondary" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/minutes/${row.id}/submit`, { method: "POST" }), "Minutes submitted.")}>Submit</button>}{row.status === "submitted" && <button className="button button-primary" onClick={() => void submit(new Event("submit") as unknown as FormEvent, () => api(`${base}/minutes/${row.id}/approve`, { method: "POST", body: JSON.stringify({ note: null }) }), "Minutes approved.")}>Approve</button>}{row.status === "approved" && (
-            <button className="button button-secondary" title="Print or save as PDF" onClick={() => {
+            <button className="button button-secondary" title="Print or save as PDF" onClick={async () => {
               const win = window.open("", "_blank");
               if (win) {
-                win.document.write(`<!DOCTYPE html><html><head><title>Minutes – Revision ${row.revision}</title><style>body{font-family:sans-serif;max-width:800px;margin:2rem auto;padding:1rem}h1{font-size:1.3rem}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>${eventDetails?.title || meeting.meeting_type} – Minutes (Revision ${row.revision})</h1><p><em>Status: ${row.status}</em></p><pre>${row.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre><p style="margin-top:2rem;font-size:.8rem;color:#666">Generated by EvenSpace · ${new Date().toLocaleString()}</p></body></html>`);
+                win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${YEDF_BRAND.productName} – Minutes Revision ${row.revision}</title><style>body{font-family:sans-serif;max-width:800px;margin:2rem auto;padding:1rem}.identity{display:flex;align-items:center;gap:12px;border-bottom:2px solid #ddd;padding-bottom:12px;margin-bottom:20px;font-weight:700}.identity img{width:96px}h1{font-size:1.3rem}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><div class="identity"><img src="${YEDF_BRAND.logoUrl}" alt=""><span>${YEDF_BRAND.productName}<br>${YEDF_BRAND.institutionName}</span></div><h1>${esc(eventDetails?.title || meeting.meeting_type)} – Minutes (Revision ${row.revision})</h1><p><em>Status: ${esc(row.status)}</em></p><pre>${esc(row.content)}</pre><p style="margin-top:2rem;font-size:.8rem;color:#666">${YEDF_BRAND.productDescription} · ${new Date().toLocaleString()}</p></body></html>`);
                 win.document.close();
+                await Promise.all(Array.from(win.document.images, (image) => image.decode().catch(() => undefined)));
+                win.focus();
                 win.print();
               }
             }}><Printer size={14} /> Print / PDF</button>
@@ -1055,7 +1057,7 @@ export default function Meetings({
         </>}
       </div> : <section className="meeting-card meeting-placeholder"><CalendarDays size={28} /><h2>Select or create a meeting</h2><p>Choose a meeting on the left to open its institutional record.</p></section>}
     </div>
-    <footer className="footer"><span>EVENSPACE</span><span>Institutional meeting records</span></footer>
+    <InstitutionalFooter />
   </main>;
 }
 

@@ -15,7 +15,7 @@ class Settings:
 
     @property
     def app_name(self) -> str:
-        return os.getenv("APP_NAME", "EvenSpace API")
+        return os.getenv("APP_NAME", "YEDF SPACE API")
 
     @property
     def session_cookie_name(self) -> str:

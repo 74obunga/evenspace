@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Copy, Printer, QrCode, Search, ShieldCheck, Ticket } from "lucide-react";
 import { API_BASE } from "./apiBase";
+import { BrandLockup, YEDF_BRAND } from "./Branding";
 
 type TicketType = { id: string; name: string; description: string | null; price: string; capacity: number | null };
 type EventInfo = {
@@ -157,7 +158,7 @@ export default function Participant({
 
   return <main className="shell participant-shell">
     <header className="topbar">
-      <a className="brand" href="#participant-top" aria-label="EvenSpace home"><span className="brand-mark"><span /></span><span>evenspace</span></a>
+      <a className="brand" href="#participant-top" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a>
       <div className="topbar-actions">
         {onEvents && <button className="view-switch" type="button" onClick={onEvents}>Events</button>}
         {onMeetings && <button className="view-switch" type="button" onClick={onMeetings}>Meetings</button>}
@@ -165,7 +166,7 @@ export default function Participant({
       </div>
     </header>
     <section className="intro" id="participant-top">
-      <div className="eyebrow"><span className="eyebrow-dot" /> YOUR EVENSPACE TICKETS</div>
+      <div className="eyebrow"><span className="eyebrow-dot" /> YOUR YEDF SPACE TICKETS</div>
       <h1>Good plans, <span>checked in.</span></h1>
       <p>Browse public events, register for a free ticket, or retrieve an existing ticket with its private credential.</p>
     </section>
@@ -174,6 +175,7 @@ export default function Participant({
     </div>}
 
     {ticket ? <section className="participant-ticket card" id="ticket-details" aria-label="Your ticket">
+      <div className="ticket-print-brand"><img src={YEDF_BRAND.logoUrl} alt="" /><span><strong>{YEDF_BRAND.productName}</strong><small>{YEDF_BRAND.institutionName}</small></span></div>
       <div className="participant-ticket-heading">
         <span className="event-label"><Ticket size={15} /> {ticket.status.toUpperCase()} TICKET</span>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -239,6 +241,6 @@ export default function Participant({
         <div className="security-note"><ShieldCheck size={16} /><span>Credentials are kept in this page's memory and are not saved to browser storage.</span></div>
       </section>
     </div>}
-    <footer className="footer"><span>EVENSPACE</span><span>One ticket · One admission</span></footer>
+    <footer className="footer"><span>YEDF SPACE</span><span>One ticket · One admission</span></footer>
   </main>;
 }

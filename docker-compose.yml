@@ -17,6 +17,7 @@ services:
   api:
     build: ./backend
     environment:
+      APP_NAME: ${APP_NAME:-YEDF SPACE API}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-evenspace}:${POSTGRES_PASSWORD:-evenspace-dev-only}@db:5432/${POSTGRES_DB:-evenspace}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}

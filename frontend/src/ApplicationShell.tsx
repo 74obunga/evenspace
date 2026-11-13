@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CalendarDays, LayoutDashboard, LogOut, QrCode, Settings as SettingsIcon, Ticket, Users } from "lucide-react";
 import { api } from "./api";
+import { BrandLockup, YEDF_BRAND } from "./Branding";
 
 export type AppModule = "events" | "meetings" | "scanner" | "participant" | "settings";
 
@@ -57,8 +58,8 @@ export default function ApplicationShell({ module, navigate, children }: {
 
   return <div className="app-shell">
     <header className="app-topbar">
-      <button className="app-brand" type="button" onClick={() => navigate("/meetings")} aria-label="EvenSpace home">
-        <span className="brand-mark"><span /></span><span>EvenSpace</span>
+      <button className="app-brand" type="button" onClick={() => navigate("/meetings")} aria-label={`${YEDF_BRAND.productName} home`}>
+        <BrandLockup className="app-brand-lockup" />
       </button>
       <div className="app-topbar-context"><LayoutDashboard size={16} /> Event & meeting operations</div>
       <div className="app-account">{email && <><span title={email}>{email}</span><button type="button" onClick={() => void signOut()}><LogOut size={15} /> Sign out</button></>}</div>
@@ -79,22 +80,12 @@ export default function ApplicationShell({ module, navigate, children }: {
       <div className="app-content">{children}</div>
     </div>
     <footer className="youth-fund-footer">
-      <a className="youth-fund-footer-brand" href="https://www.youthfund.go.ke/" target="_blank" rel="noreferrer">
-        <img
-          src="https://www.youthfund.go.ke/wp-content/uploads/2016/08/logo2.jpg"
-          alt="Youth Enterprise Development Fund"
-          width="92"
-          height="66"
-          loading="lazy"
-        />
-      </a>
+      <div className="youth-fund-footer-brand"><img src={YEDF_BRAND.logoUrl} alt="Youth Enterprise Development Fund logo" width="92" height="66" /></div>
       <div className="youth-fund-footer-copy">
-        <strong>Youth Enterprise Development Fund (YEDF)</strong>
-        <p>Supporting youth entrepreneurship and employment creation across Kenya.</p>
+        <strong>{YEDF_BRAND.productName} · {YEDF_BRAND.institutionName}</strong>
+        <p>{YEDF_BRAND.productDescription}</p>
+        <small>{YEDF_BRAND.institutionDescription}</small>
       </div>
-      <a className="youth-fund-footer-link" href="https://www.youthfund.go.ke/" target="_blank" rel="noreferrer">
-        Visit Youth Fund
-      </a>
     </footer>
   </div>;
 }

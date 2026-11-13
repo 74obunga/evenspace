@@ -16,6 +16,7 @@ import EmailVerification from "./EmailVerification";
 import InvitationAccept from "./InvitationAccept";
 import OrganizerDashboard from "./OrganizerDashboard";
 import ApplicationShell, { type AppModule } from "./ApplicationShell";
+import { BrandLockup, YEDF_BRAND } from "./Branding";
 import Settings from "./Settings";
 import { API_BASE } from "./apiBase";
 
@@ -192,7 +193,7 @@ function App() {
     const value = rawValue.trim();
     if (!session) return;
     if (!CREDENTIAL_PATTERN.test(value)) {
-      setNotice({ tone: "warning", text: "That code is not a valid EvenSpace ticket QR. No scan was recorded." });
+      setNotice({ tone: "warning", text: "That code is not a valid YEDF SPACE ticket QR. No scan was recorded." });
       return;
     }
     const credentialHash = await hashHex(value);
@@ -322,9 +323,8 @@ function App() {
   return (
     <ApplicationShell module="scanner" navigate={navigate}><main className="shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="EvenSpace home">
-          <span className="brand-mark"><span /></span>
-          <span>evenspace</span>
+        <a className="brand" href="#top" aria-label={`${YEDF_BRAND.productName} home`}>
+          <BrandLockup />
         </a>
         <div className="topbar-actions">
           <button className="view-switch" type="button" onClick={() => navigate("/events")}>Events</button>
@@ -438,7 +438,7 @@ function App() {
           </section>
         </>
       )}
-      <footer className="footer"><span>EVENSPACE</span><span>Offline-ready gate check-in</span></footer>
+      <footer className="footer"><span>YEDF SPACE</span><span>Offline-ready gate check-in</span></footer>
     </main></ApplicationShell>
   );
 }

@@ -19,8 +19,10 @@
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .app-topbar { position: sticky; top: 0; z-index: 30; height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 24px; color: #fff; background: #ed1c24; box-shadow: 0 2px 12px rgb(96 17 20 / 18%); }
 .app-brand { display: inline-flex; align-items: center; gap: 11px; border: 0; color: #fff; background: transparent; font-size: 17px; font-weight: 750; letter-spacing: -.35px; }
-.app-brand .brand-mark { border-color: #fff; }
-.app-brand .brand-mark::before, .app-brand .brand-mark::after, .app-brand .brand-mark span { background: #fff; }
+.app-brand-lockup { display: inline-flex; align-items: center; gap: 9px; color: #fff; font-size: 15px; font-weight: 800; letter-spacing: .02em; }
+.yedf-brand { display: inline-flex; align-items: center; gap: 9px; }
+.yedf-brand img { display: block; width: 72px; height: 38px; object-fit: contain; background: #fff; }
+.app-brand-lockup img { width: 72px; height: 34px; }
 .app-topbar-context { display: flex; align-items: center; gap: 8px; margin-right: auto; padding-left: 24px; color: rgb(255 255 255 / 78%); font-size: 12px; font-weight: 600; }
 .app-account { display: flex; align-items: center; gap: 16px; color: rgb(255 255 255 / 82%); font-size: 12px; }
 .app-account > span { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -81,11 +83,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   backdrop-filter: blur(12px);
 }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); font-size: 17px; font-weight: 750; letter-spacing: -.6px; text-decoration: none; }
-.brand-mark { position: relative; width: 24px; height: 24px; border: 2px solid #317b50; border-radius: 8px; transform: rotate(-8deg); }
-.brand-mark::before, .brand-mark::after, .brand-mark span { position: absolute; content: ""; border-radius: 50%; background: #317b50; }
-.brand-mark::before { width: 5px; height: 5px; left: 4px; top: 4px; }
-.brand-mark::after { width: 5px; height: 5px; right: 4px; bottom: 4px; }
-.brand-mark span { width: 4px; height: 4px; left: 9px; bottom: 5px; }
 .connection { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 99px; color: #4f6757; background: #fff; font-size: 12px; font-weight: 650; }
 .connection.is-offline { color: #9c6028; background: #fff7e9; border-color: #f0dfc2; }
 .topbar-actions { display: flex; align-items: center; gap: 9px; }
@@ -490,6 +487,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .shell, .participant-shell, .meeting-shell { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
   .participant-ticket { border: 2px solid #111 !important; box-shadow: none !important; margin: 20px auto !important; max-width: 500px !important; page-break-inside: avoid; }
   .participant-ticket-content { display: flex !important; justify-content: space-between !important; align-items: center !important; }
+  .ticket-print-brand { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #bbb; }
+  .ticket-print-brand img { width:92px; height:auto; }
+  .ticket-print-brand span { display:grid; gap:3px; }
+  .ticket-print-brand strong { font-size:13px; }
+  .ticket-print-brand small { color:#555; font-size:10px; }
   .ticket-qr { margin: 0 !important; }
 }
 
@@ -541,7 +543,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .organizer-table { min-width: 530px; }
 }
 
-/* Shared EvenSpace visual system */
+/* Shared YEDF SPACE visual system */
 :root {
   --ink: #292929;
   --muted: #626262;
@@ -728,15 +730,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-weight: 850;
   letter-spacing: -1.1px;
 }
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-width: 3px;
-  border-radius: 11px;
-}
-.brand-mark::before { width: 7px; height: 7px; left: 5px; top: 5px; }
-.brand-mark::after { width: 7px; height: 7px; right: 5px; bottom: 5px; }
-.brand-mark span { width: 5px; height: 5px; left: 13px; bottom: 7px; }
 .intro {
   background: #fff !important;
   border-color: #d8e5d9;
@@ -925,8 +918,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .youth-fund-footer-copy { display: grid; gap: 5px; }
 .youth-fund-footer-copy strong { color: #292929; font-size: 13px; }
 .youth-fund-footer-copy p { margin: 0; color: #686868; font-size: 12px; line-height: 1.5; }
+.youth-fund-footer-copy small { max-width: 680px; color:#777; font-size:10px; line-height:1.4; }
 .youth-fund-footer-link { margin-left: auto; color: #c4141c; font-size: 12px; font-weight: 700; text-decoration: none; }
 .youth-fund-footer-link:hover { color: #991018; text-decoration: underline; }
+.yedf-page-footer { display:flex; align-items:center; justify-content:center; gap:14px; padding:16px 20px; color:#515151; }
+.yedf-page-footer > img { width:72px; height:auto; }
+.yedf-page-footer > span { display:grid; gap:3px; }
+.yedf-page-footer strong { font-size:12px; }
+.yedf-page-footer small { color:#777; font-size:11px; }
+.yedf-page-footer small:last-child { max-width:620px; font-size:10px; line-height:1.4; }
+.ticket-print-brand { display:none; }
 @media (max-width: 520px) {
   .youth-fund-footer { align-items: flex-start; }
 }

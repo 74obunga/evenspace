@@ -1,6 +1,6 @@
-# EvenSpace
+# YEDF SPACE
 
-EvenSpace is an event and meeting management platform with a React workspace meeting console and an offline gate scanner.
+YEDF SPACE is the Youth Enterprise Development Fund's institutional meeting and event management system. It builds on the existing React and FastAPI application and retains its meeting, event, attendance, and offline gate-scanning capabilities.
 
 ## Current state
 
@@ -37,7 +37,7 @@ docker compose up --build -d
 docker compose exec api alembic -c alembic.ini upgrade head
 ```
 
-The API is at `http://localhost:8000`; OpenAPI docs are at `/docs`. The EvenSpace app is at `http://localhost:5173`; choose **Meetings** to sign in and open the meeting console. New accounts must verify their email before signing in. SMTP delivery runs in the `notification-worker` service when configured. Generate a Fernet key for `NOTIFICATION_ENCRYPTION_KEY` (for example with Python `from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())`) and configure it identically for the API and worker before enabling ticket credential emails, password reset links, or verification links. Account emails also require SMTP configuration. `GET /api/v1/health/live` checks process liveness and `GET /api/v1/health/ready` checks the database connection.
+The API is at `http://localhost:8000`; OpenAPI docs are at `/docs`. YEDF SPACE is at `http://localhost:5173`; choose **Meetings** to sign in and open the meeting console. New accounts must verify their email before signing in. SMTP delivery runs in the `notification-worker` service when configured. Generate a Fernet key for `NOTIFICATION_ENCRYPTION_KEY` (for example with Python `from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())`) and configure it identically for the API and worker before enabling ticket credential emails, password reset links, or verification links. Account emails also require SMTP configuration. `GET /api/v1/health/live` checks process liveness and `GET /api/v1/health/ready` checks the database connection.
 
 In the Meetings console, select a workspace, enter a meeting title, type, local start/end times, and format, then choose **Schedule meeting**. Online format requires a Google Meet or Zoom URL. This creates a private event and its scheduled meeting in one transaction. Open the meeting record and choose **Generate meeting QR**; display or share the QR so attendees can submit their details. Online attendees receive a **Join online meeting** button after registration. Use a network-reachable HTTPS address for phones outside the development machine. The API equivalent is `POST /api/v1/workspaces/{workspace_id}/meetings/schedule` with `title`, `meeting_type`, offset-aware `start_at` and `end_at`, an IANA `timezone`, `meeting_mode` (`physical` or `online`), and `online_url` for online meetings.
 

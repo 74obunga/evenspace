@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
 import { API_BASE } from "./apiBase";
+import { BrandLockup, InstitutionalFooter, YEDF_BRAND } from "./Branding";
 
 export default function PasswordReset({ token, onDone }: { token: string; onDone: () => void }) {
   const [password, setPassword] = useState("");
@@ -27,7 +28,7 @@ export default function PasswordReset({ token, onDone }: { token: string; onDone
   }
 
   return <main className="meeting-shell">
-    <header className="meeting-header"><a className="brand" href="/"><span className="brand-mark"><span /></span><span>evenspace</span></a><span className="meeting-tag"><ShieldCheck size={14} /> ACCOUNT SECURITY</span></header>
+    <header className="meeting-header"><a className="brand" href="/" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a><span className="meeting-tag"><ShieldCheck size={14} /> ACCOUNT SECURITY</span></header>
     <section className="meeting-welcome"><span className="meeting-kicker"><KeyRound size={15} /> PASSWORD RESET</span><h1>Secure your <em>account.</em></h1><p>Choose a new password with at least 12 characters.</p></section>
     <form className="meeting-card auth-card" onSubmit={(event) => void submit(event)}>
       <h2>{complete ? "Password updated" : "Choose a new password"}</h2>
@@ -39,6 +40,6 @@ export default function PasswordReset({ token, onDone }: { token: string; onDone
       </>}
       {complete && <button className="button button-primary full-width" type="button" onClick={onDone}>Continue to sign in</button>}
     </form>
-    <footer className="footer"><span>EVENSPACE</span><span>One-time secure reset link</span></footer>
+    <InstitutionalFooter />
   </main>;
 }

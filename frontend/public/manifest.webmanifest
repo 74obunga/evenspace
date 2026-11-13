@@ -1,16 +1,16 @@
 {
-  "name": "EvenSpace Meetings",
-  "short_name": "EvenSpace",
+  "name": "YEDF SPACE",
+  "short_name": "YEDF SPACE",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8f8f8",
+  "background_color": "#ffffff",
   "theme_color": "#ed1c24",
   "icons": [
     {
-      "src": "/evenspace-icon.svg",
+      "src": "/yedf-space-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

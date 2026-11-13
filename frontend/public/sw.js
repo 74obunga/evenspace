@@ -1,5 +1,5 @@
-const CACHE = "evenspace-scanner-shell-v1";
-const SHELL = ["/", "/manifest.webmanifest", "/evenspace-icon.svg"];
+const CACHE = "yedf-space-shell-v1";
+const SHELL = ["/", "/manifest.webmanifest", "/yedf-space-logo.png", "/yedf-space-icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
 import { CalendarDays, CheckCircle2, MapPin, ShieldCheck, Users } from "lucide-react";
 import { API_BASE } from "./apiBase";
+import { BrandLockup, InstitutionalFooter, YEDF_BRAND } from "./Branding";
 
 type MeetingInfo = { meeting_id: string; meeting_type: string; event_title: string; starts_at: string; timezone: string; meeting_mode: "physical" | "online" };
 type MeetingJoinResult = { join_url: string | null };
@@ -140,7 +141,7 @@ export default function MeetingJoin({ meetingId, token }: { meetingId: string; t
   };
 
   return <main className="meeting-join-shell">
-    <header className="meeting-join-header"><a className="brand" href="/"><span className="brand-mark"><span /></span><span>evenspace</span></a><span className="meeting-tag"><Users size={14} /> MEETING REGISTRATION</span></header>
+    <header className="meeting-join-header"><a className="brand" href="/" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a><span className="meeting-tag"><Users size={14} /> MEETING REGISTRATION</span></header>
     <section className="meeting-join-card card">
       {info ? <>
         <span className="meeting-kicker"><CalendarDays size={15} /> {info.meeting_type}</span>
@@ -179,6 +180,6 @@ export default function MeetingJoin({ meetingId, token }: { meetingId: string; t
         </>}
       </> : error ? <div className="meeting-join-error"><ShieldCheck size={24} /><h1>This meeting link is unavailable</h1><p>{error}</p><span>Ask the meeting organizer for a current QR code.</span></div> : <div className="meeting-join-loading" role="status">Checking meeting link…</div>}
     </section>
-    <footer className="footer"><span>EVENSPACE</span><span>Secure meeting registration</span></footer>
+    <InstitutionalFooter />
   </main>;
 }
