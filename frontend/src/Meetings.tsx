@@ -258,11 +258,16 @@ export default function Meetings({
   }
 
   useEffect(() => {
-    void api<{ email: string }>("/auth/me").then((user) => {
-      setUserEmail(user.email);
-      return reloadWorkspaces();
-    }).catch(() => setUserEmail(""));
-  }, []);
+    const refreshAccount = () => {
+      void api<{ email: string }>("/auth/me").then((user) => {
+        setUserEmail(user.email);
+        return reloadWorkspaces();
+      }).catch(() => setUserEmail(""));
+    };
+    refreshAccount();
+    window.addEventListener("evenspace:auth-changed", refreshAccount);
+    return () => window.removeEventListener("evenspace:auth-changed", refreshAccount);
+  }, [reloadWorkspaces]);
 
   useEffect(() => { if (workspaceId) void reloadMeetings(workspaceId).catch((error) => setMessage(error.message)); }, [workspaceId, reloadMeetings]);
 
@@ -287,6 +292,7 @@ export default function Meetings({
       } else {
         const user = await api<{ email: string }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
         setUserEmail(user.email); await reloadWorkspaces();
+        window.dispatchEvent(new Event("evenspace:auth-changed"));
       }
     } catch (error) {
       const text = error instanceof Error ? error.message : "Could not sign in";
@@ -843,11 +849,24 @@ export default function Meetings({
     win.print();
   }
 
-  if (!userEmail) return <main className="meeting-shell">
+  if (!userEmail) return <main className="meeting-shell auth-page">
     <header className="meeting-header"><a className="brand" href="#top" aria-label={`${YEDF_BRAND.productName} home`}><BrandLockup /></a><div className="meeting-user"><button className="meeting-link" onClick={onGate}>Gate scanner</button><span className="meeting-tag">MEETINGS</span></div></header>
-    <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> WORKSPACE MEETINGS</span><h1>Meet with <em>purpose.</em></h1><p>Prepare agendas, approve minutes, record decisions, and follow actions through.</p></section>
-    <form className="meeting-card auth-card" onSubmit={(event) => void authenticate(event)}>
-      <h2>{isForgotPassword ? "Reset your password" : isResendVerification ? "Verify your email" : isRegister ? "Create your workspace" : `Sign in to ${YEDF_BRAND.productName}`}</h2>
+    <section className="auth-layout">
+      <div className="auth-story">
+        <span className="auth-story-kicker"><CalendarDays size={15} /> WORKSPACE MEETINGS</span>
+        <h1>Meet with <em>purpose.</em></h1>
+        <p>Bring preparation, participation, and follow-through together in one secure workspace.</p>
+        <div className="auth-story-features">
+          <span><Clipboard size={17} /> Agendas, minutes, and decisions</span>
+          <span><Users size={17} /> Attendee registration and signatures</span>
+          <span><QrCode size={17} /> QR attendance records</span>
+        </div>
+      </div>
+      <div className="auth-form-panel">
+        <form className="meeting-card auth-card" onSubmit={(event) => void authenticate(event)}>
+          <span className="auth-form-kicker">YEDF SPACE · SECURE ACCESS</span>
+          <h2>{isForgotPassword ? "Reset your password" : isResendVerification ? "Verify your email" : isRegister ? "Create your workspace" : "Welcome back"}</h2>
+          <p className="auth-form-description">{isForgotPassword ? "Enter your email and we’ll send a secure reset link." : isResendVerification ? "We’ll send a fresh verification link to your email." : isRegister ? "Set up a workspace for your team’s meetings." : "Sign in to continue to your meeting workspace."}</p>
       <label className="field"><span>Email</span><input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
       {!isForgotPassword && !isResendVerification && <label className="field"><span>Password</span><input type="password" required minLength={isRegister ? 12 : 1} autoComplete={isRegister ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} /></label>}
       {isRegister && !isForgotPassword && !isResendVerification && <label className="field"><span>Workspace name</span><input required value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} /></label>}
@@ -858,7 +877,9 @@ export default function Meetings({
         {(needsVerification || message.startsWith("Account created")) && <button className="meeting-link" type="button" onClick={() => { setIsResendVerification(true); setIsForgotPassword(false); setMessage(""); }}>Resend verification email</button>}
         <button className="meeting-link" type="button" onClick={() => { setIsRegister(!isRegister); setNeedsVerification(false); setMessage(""); }}>{isRegister ? "Already have an account? Sign in" : `New to ${YEDF_BRAND.productName}? Create an account`}</button>
       </>}
-    </form>
+        </form>
+      </div>
+    </section>
     <InstitutionalFooter />
   </main>;
 
@@ -874,7 +895,7 @@ export default function Meetings({
         <button className="meeting-link" type="button" onClick={onGate}>Gate scanner</button>
         {onParticipant && <button className="meeting-link" type="button" onClick={onParticipant}>My tickets</button>}
         <span>{userEmail}</span>
-        <button type="button" className="meeting-link" onClick={() => void api("/auth/logout", { method: "POST" }).then(() => { setUserEmail(""); setMeeting(null); }).catch((e) => setMessage(e.message))}>Sign out</button>
+        <button type="button" className="meeting-link" onClick={() => void api("/auth/logout", { method: "POST" }).then(() => { setUserEmail(""); setMeeting(null); window.dispatchEvent(new Event("evenspace:auth-changed")); }).catch((e) => setMessage(e.message))}>Sign out</button>
       </div>
     </header>
     <section className="meeting-welcome"><span className="meeting-kicker"><CalendarDays size={15} /> MEETINGS</span><h1>Run the meeting, <em>keep the record.</em></h1><p>Manage agendas, approvals, decisions, attendance, and accountable follow-through.</p></section>

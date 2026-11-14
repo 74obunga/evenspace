@@ -939,3 +939,72 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .youth-fund-footer-copy p { font-size: 11px; }
   .youth-fund-footer-link { display: none; }
 }
+
+.auth-page { width:min(100% - 48px, 1120px); min-height:100vh; display:flex; flex-direction:column; }
+.auth-page > .meeting-header { flex:none; }
+.auth-layout {
+  flex:1;
+  display:grid;
+  grid-template-columns:minmax(0, 1.08fr) minmax(360px, .92fr);
+  min-height:520px;
+  margin:22px 0 28px;
+  overflow:hidden;
+  border:1px solid #dfe8df;
+  border-radius:22px;
+  background:#fff;
+  box-shadow:0 18px 48px rgb(26 47 29 / 9%);
+}
+.auth-story {
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden;
+  padding:clamp(32px, 6vw, 76px);
+  background:linear-gradient(145deg, #f8fbf8 0%, #edf5ee 58%, #e4f0e6 100%);
+}
+.auth-story::after {
+  position:absolute;
+  right:-150px;
+  bottom:-230px;
+  width:480px;
+  height:480px;
+  border:1px solid rgb(44 105 62 / 10%);
+  border-radius:50%;
+  box-shadow:0 0 0 36px rgb(255 255 255 / 17%), 0 0 0 72px rgb(44 105 62 / 4%);
+  content:"";
+}
+.auth-story-kicker { display:inline-flex; align-items:center; gap:8px; color:#376449; font-size:10px; font-weight:800; letter-spacing:1.15px; }
+.auth-story h1 { position:relative; z-index:1; max-width:540px; margin:20px 0 12px; color:#19291e; font-size:clamp(38px, 5.3vw, 58px); line-height:1.04; letter-spacing:-2.6px; }
+.auth-story h1 em { color:var(--brand-accent); font-style:normal; }
+.auth-story > p { position:relative; z-index:1; max-width:470px; margin:0; color:#536458; font-size:15px; line-height:1.7; }
+.auth-story-features { position:relative; z-index:1; display:grid; gap:14px; margin-top:35px; }
+.auth-story-features span { display:flex; align-items:center; gap:11px; color:#34483a; font-size:12px; font-weight:650; }
+.auth-story-features svg { flex:none; color:#b51018; }
+.auth-form-panel { display:grid; place-items:center; padding:clamp(24px, 4vw, 52px); }
+.auth-form-panel .auth-card { width:min(100%, 420px); margin:0; padding:0; border:0; border-radius:0; background:#fff; box-shadow:none; }
+.auth-form-kicker { display:block; margin-bottom:12px; color:#7a837b; font-size:9px; font-weight:800; letter-spacing:1.15px; }
+.auth-form-panel .auth-card h2 { margin:0 0 7px; color:#1d2b21; font-size:27px; letter-spacing:-.8px; }
+.auth-form-description { margin:0 0 24px; color:#737d74; font-size:12px; line-height:1.55; }
+.auth-form-panel .auth-card .field { margin-bottom:16px; }
+.auth-form-panel .auth-card .field input { min-height:48px; }
+.auth-form-panel .auth-card .meeting-link { display:block; width:100%; margin-top:9px; padding:8px 0; text-align:center; }
+.auth-form-panel .auth-card .meeting-message { margin:0 0 13px; }
+
+@media (max-width: 820px) {
+  .auth-layout { grid-template-columns:minmax(0, 1fr) minmax(330px, .95fr); }
+  .auth-story { padding:34px; }
+  .auth-story h1 { font-size:clamp(36px, 6vw, 48px); }
+  .auth-story-features { gap:12px; }
+  .auth-form-panel { padding:28px; }
+}
+@media (max-width: 680px) {
+  .auth-page { width:min(100% - 28px, 520px); }
+  .auth-layout { grid-template-columns:1fr; min-height:0; margin:14px 0 22px; }
+  .auth-story { padding:28px 25px; }
+  .auth-story h1 { margin:12px 0 8px; font-size:clamp(34px, 9vw, 44px); }
+  .auth-story > p { font-size:13px; }
+  .auth-story-features { grid-template-columns:1fr; gap:10px; margin-top:20px; }
+  .auth-story-features span { font-size:11px; }
+  .auth-form-panel { padding:28px 24px 30px; }
+}

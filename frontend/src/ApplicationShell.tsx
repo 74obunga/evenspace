@@ -29,7 +29,12 @@ export default function ApplicationShell({ module, navigate, children }: {
   const [email, setEmail] = useState("");
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   const [accountMessage, setAccountMessage] = useState("");
-  useEffect(() => { void api<{ email: string }>("/auth/me").then((user) => setEmail(user.email)).catch(() => setEmail("")); }, []);
+  useEffect(() => {
+    const refreshAccount = () => { void api<{ email: string }>("/auth/me").then((user) => setEmail(user.email)).catch(() => setEmail("")); };
+    refreshAccount();
+    window.addEventListener("evenspace:auth-changed", refreshAccount);
+    return () => window.removeEventListener("evenspace:auth-changed", refreshAccount);
+  }, []);
   useEffect(() => {
     const update = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
@@ -41,7 +46,7 @@ export default function ApplicationShell({ module, navigate, children }: {
 
   async function signOut() {
     setAccountMessage("");
-    try { await api("/auth/logout", { method: "POST" }); setEmail(""); navigate("/meetings"); }
+    try { await api("/auth/logout", { method: "POST" }); setEmail(""); window.dispatchEvent(new Event("evenspace:auth-changed")); navigate("/meetings"); }
     catch (error) { setAccountMessage(error instanceof Error ? error.message : "Could not sign out."); }
   }
 
@@ -55,6 +60,8 @@ export default function ApplicationShell({ module, navigate, children }: {
     navigate(path);
     window.setTimeout(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
+
+  if (module === "meetings" && !email) return <>{children}</>;
 
   return <div className="app-shell">
     <header className="app-topbar">
